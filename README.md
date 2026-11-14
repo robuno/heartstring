@@ -1,4 +1,4 @@
-# Heartstring 💞
+# Heartstring 
 
 A cozy, physics-based 2-player co-op platformer where two players are tied together by a red string. Built with vanilla JavaScript, HTML5 Canvas, and WebRTC.
 
