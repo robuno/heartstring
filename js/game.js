@@ -13,9 +13,9 @@
   const ROPE_N = 18;
 
   const KEYMAPS = {
-    p1: { left: ['KeyA'], right: ['KeyD'], jump: ['KeyW', 'Space'], anchor: ['KeyS'], reel: ['KeyE'], emote: ['Digit1', 'Digit2', 'Digit3', 'Digit4'], kiss: ['KeyF'], dance: ['KeyZ'], matcha: ['KeyX'], say: ['KeyC'] },
-    p2: { left: ['ArrowLeft'], right: ['ArrowRight'], jump: ['ArrowUp'], anchor: ['ArrowDown'], reel: ['ShiftRight', 'Slash', 'Period', 'Numpad0'], emote: ['Digit7', 'Digit8', 'Digit9', 'Digit0'], kiss: ['KeyL', 'Numpad1'], dance: ['KeyN'], matcha: ['KeyM'], say: ['KeyJ'] },
-    solo: { left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], jump: ['KeyW', 'ArrowUp', 'Space'], anchor: ['KeyS', 'ArrowDown', 'ShiftLeft'], reel: ['KeyE', 'ShiftRight', 'KeyQ'], emote: ['Digit1', 'Digit2', 'Digit3', 'Digit4'], kiss: ['KeyK', 'KeyF'], dance: ['KeyZ'], matcha: ['KeyX'], say: ['Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'] },
+    p1: { left: ['KeyA'], right: ['KeyD'], jump: ['KeyW', 'Space'], anchor: ['KeyS'], reel: ['KeyE'], emote: ['Digit1', 'Digit2', 'Digit3', 'Digit4'], kiss: ['KeyF'], dance: ['KeyZ'], matcha: ['KeyX'], say: ['KeyC'], eat: ['KeyV'], shine: ['KeyG'] },
+    p2: { left: ['ArrowLeft'], right: ['ArrowRight'], jump: ['ArrowUp'], anchor: ['ArrowDown'], reel: ['ShiftRight', 'Slash', 'Period', 'Numpad0'], emote: ['Digit7', 'Digit8', 'Digit9', 'Digit0'], kiss: ['KeyL', 'Numpad1'], dance: ['KeyN'], matcha: ['KeyM'], say: ['KeyJ'], eat: ['KeyK'], shine: ['KeyI'] },
+    solo: { left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], jump: ['KeyW', 'ArrowUp', 'Space'], anchor: ['KeyS', 'ArrowDown', 'ShiftLeft'], reel: ['KeyE', 'ShiftRight', 'KeyQ'], emote: ['Digit1', 'Digit2', 'Digit3', 'Digit4'], kiss: ['KeyK', 'KeyF'], dance: ['KeyZ'], matcha: ['KeyX'], say: ['Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'], eat: ['KeyV'], shine: ['KeyG'] },
   };
   const tr = (k, v) => (global.I18N ? global.I18N.t(k, v) : k);
   const trList = (k, i) => { const l = tr(k); return Array.isArray(l) ? l[i] || l[0] : ''; };
@@ -41,6 +41,7 @@
       reel: 0, prevX: 0, prevY: 0, lastDx: 0, lastDy: 0, squash: 0, walkT: 0, blinkT: Math.random() * 3,
       emote: null, emoteT: 0, inUpdraft: false, local: true, ropeHang: 0,
       act: null, actT: 0, actDur: 0, actFx: 0, sipped: false, idleT: 0, say: null, typing: false, typingT: 0, sayIdx: 0,
+      shineT: 0, glowT: 0, trailT: 0, chewT: 0,
       tx: undefined, ty: undefined, nvx: 0, nvy: 0, netAge: 0, reelSfx: 0,
     };
   }
@@ -233,6 +234,8 @@
         if (km.kiss.includes(e.code)) tryKiss();
         if (km.dance.includes(e.code)) startAct(ch, 'dance', true);
         if (km.matcha.includes(e.code)) startAct(ch, 'matcha', true);
+        if (km.eat.includes(e.code)) startAct(ch, 'eat', true);
+        if (km.shine.includes(e.code)) startShine(ch, true);
         const si = km.say.indexOf(e.code);
         if (si >= 0) {
           const p = G.players[ch];
@@ -338,7 +341,8 @@
       else if (p.grounded && !p.anchored && Math.abs(p.vx) < 5 && !p.act && G.state === 'play' && G.introT <= 0) p.idleT += dt;
       if (p.idleT > 14) {
         p.idleT = -8;
-        startAct(ch, ch === 'girl' && Math.random() < 0.6 ? 'matcha' : 'dance', true);
+        const r = Math.random();
+        startAct(ch, ch === 'girl' ? (r < 0.5 ? 'matcha' : r < 0.7 ? 'eat' : 'dance') : (r < 0.4 ? 'eat' : 'dance'), true);
       }
     }
     if (!frozen && G.ropeGrace <= 0) solveRope();
@@ -362,7 +366,20 @@
       updateAct(p, dt);
       if (p.say) { p.say.age += dt; if (p.say.age > p.say.dur) p.say = null; }
       if (p.typing) { p.typingT -= dt; if (p.typingT <= 0) p.typing = false; }
+      if (ch === 'girl' && !p.anchored && G.respawnT <= 0) {
+        const sp = p.local ? Math.abs(p.vx) : Math.abs(p.nvx);
+        if (sp > 50) {
+          p.trailT -= dt * Math.min(1.3, sp / 200);
+          if (p.trailT <= 0) {
+            p.trailT = 0.032;
+            const cx = p.x + PW / 2 - p.face * 7, big = Math.random() < 0.45;
+            spawnParticle(cx + (Math.random() - 0.5) * 6, p.y + PH - 4 - Math.random() * 10, -p.face * (15 + Math.random() * 30), -25 - Math.random() * 45, 0.6 + Math.random() * 0.4,
+              ['#ffe066', '#ffc2dd', '#ffffff', '#c9b6ff', '#ff8fb8', '#9be7ff'][Math.floor(Math.random() * 6)], big ? 4.6 : 3 + Math.random() * 1.5, big ? 'star5' : 'star', 90, { vr: 7 });
+          }
+        }
+      }
     }
+    updateShine(dt);
     if (G.state === 'won') {
       G.winT += dt;
       for (const ch of ['boy', 'girl']) {
@@ -758,11 +775,12 @@
   // ---------- fun actions: dance & strawberry matcha ----------
   function canAct(p) { return p.grounded && !p.anchored && Math.abs(p.vx) < 60 && G.respawnT <= 0; }
   function startAct(ch, kind, send, force) {
-    const p = G.players && G.players[ch]; if (!p || (kind !== 'dance' && kind !== 'matcha')) return false;
+    const p = G.players && G.players[ch]; if (!p || (kind !== 'dance' && kind !== 'matcha' && kind !== 'eat')) return false;
     if (!force && (G.state !== 'play' || !canAct(p))) return false;
     p.act = kind; p.actT = 0; p.actFx = 0; p.sipped = false; p.idleT = Math.min(p.idleT, 0);
-    p.actDur = kind === 'dance' ? 4.6 : 4.4;
+    p.actDur = kind === 'dance' ? 4.6 : kind === 'eat' ? 5.4 : 4.4; p.chewT = 0;
     if (kind === 'matcha') { p.emote = tr('act.matcha'); p.emoteT = p.actDur; Sfx.play('pop'); }
+    else if (kind === 'eat') { p.emote = tr('act.eat'); p.emoteT = p.actDur; Sfx.play('pop'); }
     else {
       Sfx.play('dance');
       for (let i = 0; i < 8; i++) spawnParticle(p.x + PW / 2, p.y + PH / 2, (Math.random() - 0.5) * 200, -60 - Math.random() * 120, 0.9, RAINBOW[i % 6], 3 + Math.random() * 2, 'star5', 200, { vr: 6 });
@@ -771,7 +789,7 @@
     return true;
   }
   function stopAct(p) {
-    if (p.act === 'matcha' && p.emote === tr('act.matcha')) p.emoteT = Math.min(p.emoteT, 0.3);
+    if ((p.act === 'matcha' && p.emote === tr('act.matcha')) || (p.act === 'eat' && p.emote === tr('act.eat'))) p.emoteT = Math.min(p.emoteT, 0.3);
     p.act = null;
   }
   function sipPhase(t) {
@@ -792,6 +810,16 @@
         spawnParticle(cx + (Math.random() - 0.5) * 24, p.y - 8, (Math.random() - 0.5) * 50, -55 - Math.random() * 30, 1.3, RAINBOW[Math.floor(Math.random() * 6)], 11 + Math.random() * 4, 'note', -15, { ch: Math.random() < 0.5 ? '♪' : '♫' });
         if (Math.random() < 0.5) spawnParticle(cx + (Math.random() - 0.5) * 30, p.y + PH - 2, (Math.random() - 0.5) * 60, -30, 0.6, '#fff4a8', 3, 'star', 0);
       }
+    } else if (p.act === 'eat') {
+      const k = sipPhase(p.actT);
+      p.chewT = Math.max(0, p.chewT - dt);
+      if (k > 0.9 && !p.sipped) {
+        p.sipped = true; p.chewT = 0.9; Sfx.play('chomp');
+        for (let i = 0; i < 4; i++) spawnParticle(cx + p.face * 5, p.y + 4, (Math.random() - 0.5) * 50, -20 - Math.random() * 40, 0.6, i % 2 ? '#c8783f' : '#e9c27a', 2 + Math.random(), 'dot', 300);
+        if (Math.random() < 0.6) spawnParticle(cx + p.face * 8, p.y - 6, p.face * 20, -45, 1.1, '#ff5d8f', 5, 'heart', -20);
+      } else if (k < 0.1) p.sipped = false;
+      p.actFx -= dt;
+      if (p.actFx <= 0) { p.actFx = 0.22; spawnParticle(cx + p.face * (6 + Math.random() * 8), p.y + PH - 16, (Math.random() - 0.5) * 8, -22 - Math.random() * 10, 1.3, 'rgba(255,255,255,0.75)', 2.4 + Math.random() * 1.5, 'dot', -8, { sway: 10, ph: Math.random() * 6 }); }
     } else {
       const k = sipPhase(p.actT);
       if (k > 0.9 && !p.sipped) {
@@ -799,6 +827,78 @@
         for (let i = 0; i < 3; i++) spawnParticle(cx + p.face * 6, p.y + 2, (Math.random() - 0.5) * 40, -40 - Math.random() * 40, 1, i % 2 ? '#ff8fb1' : '#9ad27f', 4, 'heart', -20);
       } else if (k < 0.1) p.sipped = false;
     }
+  }
+
+  // ---------- she lights up his face ----------
+  const SHINE_DUR = 4.2;
+  function startShine(ch, send) {
+    if (ch !== 'girl' || !G.players) return false;
+    const g = G.players.girl, b = G.players.boy;
+    if (g.shineT > 0.6) return false;
+    g.shineT = SHINE_DUR; b.glowT = SHINE_DUR;
+    g.emote = tr('act.shine'); g.emoteT = 2.6;
+    Sfx.play('shine');
+    if (send) netSend({ t: 'shine' });
+    return true;
+  }
+  function shineEnv(g) { return g.shineT > 0 ? Math.min(1, (SHINE_DUR - g.shineT) * 4, g.shineT * 2) : 0; }
+  function wandTip(g) { return { x: g.x + PW / 2 + g.face * 15, y: g.y + PH - 32 }; }
+  function faceOf(b) { return { x: b.x + PW / 2 + b.face * 2, y: b.y + PH - 30 }; }
+  function updateShine(dt) {
+    const g = G.players.girl, b = G.players.boy;
+    if (g.shineT <= 0) { b.glowT = 0; return; }
+    g.shineT = Math.max(0, g.shineT - dt); b.glowT = g.shineT;
+    if (g.local && Math.abs(g.vx) < 30) g.face = b.x >= g.x ? 1 : -1;
+    const s = wandTip(g), f = faceOf(b), e = shineEnv(g);
+    if (Math.random() < dt * 26 * e) {
+      const u = Math.random();
+      spawnParticle(s.x + (f.x - s.x) * u, s.y + (f.y - s.y) * u - Math.sin(u * Math.PI) * 14, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, 0.7, Math.random() < 0.5 ? '#fff6b0' : '#ffffff', 2.5 + Math.random() * 2, 'star', 0);
+    }
+    if (Math.random() < dt * 16 * e) {
+      const a = Math.random() * Math.PI * 2, r = 12 + Math.random() * 10;
+      spawnParticle(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r, Math.cos(a) * 30, Math.sin(a) * 30 - 20, 0.9, ['#ffe066', '#fff', '#ffb3d1', '#ffd36b'][Math.floor(Math.random() * 4)], 2.5 + Math.random() * 2.5, 'star5', 0, { vr: 6 });
+    }
+  }
+  // the beam, his glowing face and the halo of rays (world space)
+  function drawShine(ctx, g, b, t, front) {
+    const e = shineEnv(g); if (e <= 0) return;
+    const s = wandTip(g), f = faceOf(b);
+    ctx.save();
+    if (!front) {
+      // halo behind his head: soft glow + slowly turning golden rays
+      const pulse = 1 + Math.sin(t * 7) * 0.08;
+      const gr = ctx.createRadialGradient(f.x, f.y, 4, f.x, f.y, 34 * pulse);
+      gr.addColorStop(0, `rgba(255,250,215,${0.95 * e})`); gr.addColorStop(0.5, `rgba(255,224,130,${0.5 * e})`); gr.addColorStop(1, 'rgba(255,210,120,0)');
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(f.x, f.y, 34 * pulse, 0, 7); ctx.fill();
+      ctx.translate(f.x, f.y);
+      ctx.rotate(t * 0.9);
+      for (let i = 0; i < 12; i++) {
+        const a = i / 12 * Math.PI * 2, L = (34 + Math.sin(t * 5 + i * 1.7) * 6) * e;
+        ctx.fillStyle = i % 2 ? `rgba(255,205,80,${0.45 * e})` : `rgba(255,170,200,${0.35 * e})`;
+        ctx.beginPath(); ctx.moveTo(Math.cos(a) * 12, Math.sin(a) * 12); ctx.lineTo(Math.cos(a - 0.09) * L, Math.sin(a - 0.09) * L); ctx.lineTo(Math.cos(a + 0.09) * L, Math.sin(a + 0.09) * L); ctx.closePath(); ctx.fill();
+      }
+      ctx.restore(); return;
+    }
+    ctx.globalCompositeOperation = 'lighter';
+    const dd = Math.hypot(f.x - s.x, f.y - s.y) || 1, ex = f.x - (f.x - s.x) / dd * 9, ey = f.y - (f.y - s.y) / dd * 9;
+    const mx = (s.x + ex) / 2, my = (s.y + ey) / 2 - 14;
+    const path = () => { ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.quadraticCurveTo(mx, my, ex, ey); };
+    ctx.lineCap = 'round';
+    path(); ctx.strokeStyle = `rgba(255,200,90,${0.16 * e})`; ctx.lineWidth = 12; ctx.stroke();
+    path(); ctx.strokeStyle = `rgba(255,236,160,${0.45 * e})`; ctx.lineWidth = 4.5; ctx.stroke();
+    path(); ctx.strokeStyle = `rgba(255,255,255,${0.9 * e})`; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.setLineDash([1.5, 7]); ctx.lineDashOffset = -t * 45;
+    path(); ctx.strokeStyle = `rgba(255,255,255,${e})`; ctx.lineWidth = 3; ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalCompositeOperation = 'source-over';
+    let gr = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, 13);
+    gr.addColorStop(0, `rgba(255,248,200,${0.28 * e})`); gr.addColorStop(1, 'rgba(255,240,180,0)');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(f.x, f.y, 13, 0, 7); ctx.fill();
+    ctx.globalCompositeOperation = 'lighter';
+    gr = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 12);
+    gr.addColorStop(0, `rgba(255,255,230,${e})`); gr.addColorStop(1, 'rgba(255,220,120,0)');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(s.x, s.y, 12, 0, 7); ctx.fill();
+    ctx.restore();
   }
 
   // ---------- sweet words & chat ----------
@@ -863,6 +963,7 @@
       case 'emote': doEmote(other(G.myChar), m.k, false); break;
       case 'kiss': startKiss(false); break;
       case 'act': startAct(other(G.myChar), m.a, false, true); break;
+      case 'shine': startShine('girl', false); break;
       case 'say': sayPhrase(other(G.myChar), m.i | 0, false); break;
       case 'chat': chatSay(other(G.myChar), m.text, false); break;
       case 'typing': setTyping(other(G.myChar), !!m.on, false); break;
@@ -1527,8 +1628,11 @@
     const moving = p.grounded && Math.abs(p.vx) > 20 && !p.anchored;
     const wt = p.walkT;
     const air = !p.grounded && !p.anchored;
-    const dance = p.act === 'dance' && !p.anchored, sipping = p.act === 'matcha' && !p.anchored;
-    const db = (p.actT || 0) * 9, sk = sipping ? sipPhase(p.actT || 0) : 0;
+    const dance = p.act === 'dance' && !p.anchored, sipping = p.act === 'matcha' && !p.anchored, eating = p.act === 'eat' && !p.anchored;
+    const db = (p.actT || 0) * 9, sk = sipping ? sipPhase(p.actT || 0) : 0, ek = eating ? sipPhase(p.actT || 0) : 0;
+    const shining = girl && p.shineT > 0 && !dance && !sipping && !eating && !p.anchored;
+    const glowing = !girl && p.glowT > 0;
+    const chewing = eating && (p.chewT > 0 || (ek > 0.9));
     ctx.save();
     ctx.translate(p.x + p.w / 2, p.y + p.h);
     if (dance) { ctx.translate(0, -Math.abs(Math.sin(db)) * 3); ctx.rotate(Math.sin(db) * 0.14); }
@@ -1584,6 +1688,8 @@
     ctx.fillStyle = C.skin;
     if (dance && !air) { const u = Math.sin(db); ctx.beginPath(); ctx.arc(-10.5, -25 + u * 3.5, 2.8, 0, 7); ctx.arc(10.5, -25 - u * 3.5, 2.8, 0, 7); ctx.fill(); }
     else if (sipping) { ctx.beginPath(); ctx.arc(-8.5, -12, 2.8, 0, 7); ctx.fill(); }
+    else if (eating) { /* both hands are drawn with the plate */ }
+    else if (shining) { ctx.beginPath(); ctx.arc(-8.5, -12, 2.8, 0, 7); ctx.fill(); }
     else if (p.anchored && p.wallSide) { ctx.beginPath(); ctx.arc(9, -22, 2.8, 0, 7); ctx.arc(9, -14, 2.8, 0, 7); ctx.fill(); }
     else if (p.anchored) { ctx.beginPath(); ctx.arc(-8, -8, 2.8, 0, 7); ctx.arc(8, -8, 2.8, 0, 7); ctx.fill(); }
     else if (air) { ctx.beginPath(); ctx.arc(-9, -21, 2.8, 0, 7); ctx.arc(9, -20, 2.8, 0, 7); ctx.fill(); }
@@ -1609,7 +1715,7 @@
     }
     // face
     const blink = p.blinkT < 0 || kissing || sk > 0.6;
-    if (dance) {
+    if (dance || glowing || chewing) {
       ctx.strokeStyle = '#2b2140'; ctx.lineWidth = 1.2; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.arc(1.5, -27.6, 1.7, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); ctx.beginPath(); ctx.arc(7, -27.6, 1.7, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
     } else {
@@ -1618,10 +1724,13 @@
       ctx.beginPath(); ctx.ellipse(1.5, -28.5, 1.6, eh, 0, 0, 7); ctx.ellipse(7, -28.5, 1.6, eh, 0, 0, 7); ctx.fill();
       if (!blink) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(2, -29.5, 0.6, 0, 7); ctx.arc(7.5, -29.5, 0.6, 0, 7); ctx.fill(); }
     }
-    ctx.fillStyle = sipping || dance ? 'rgba(255,100,130,0.6)' : 'rgba(255,120,140,0.45)';
-    ctx.beginPath(); ctx.ellipse(-2, -25, 2.2, 1.4, 0, 0, 7); ctx.ellipse(9.5, -25, 2, 1.4, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = glowing ? 'rgba(255,80,120,0.75)' : sipping || dance || eating ? 'rgba(255,100,130,0.6)' : 'rgba(255,120,140,0.45)';
+    const bl = glowing || chewing ? 1.35 : 1;
+    ctx.beginPath(); ctx.ellipse(-2, -25, 2.2 * bl, 1.4 * bl, 0, 0, 7); ctx.ellipse(9.5, -25, 2 * bl, 1.4 * bl, 0, 0, 7); ctx.fill();
     ctx.strokeStyle = '#7a3a3a'; ctx.lineWidth = 1; ctx.lineCap = 'round';
-    if (dance) { ctx.fillStyle = '#a8434f'; ctx.beginPath(); ctx.arc(4.5, -25.2, 2, 0, Math.PI); ctx.fill(); }
+    if (chewing) { ctx.fillStyle = '#a8434f'; const o = Math.abs(Math.sin((p.actT || 0) * 16)); ctx.beginPath(); ctx.ellipse(4.5, -24.6, 1.8, 0.4 + o * 1.1, 0, 0, 7); ctx.fill(); }
+    else if (dance || glowing) { ctx.fillStyle = '#a8434f'; ctx.beginPath(); ctx.arc(4.5, -25.2, 2, 0, Math.PI); ctx.fill(); }
+    else if (eating && ek > 0.5) { ctx.fillStyle = '#a8434f'; ctx.beginPath(); ctx.ellipse(4.5, -24.6, 1.7, 1.6, 0, 0, 7); ctx.fill(); }
     else if (sk > 0.4) { ctx.beginPath(); ctx.arc(4.5, -24.8, 0.9, 0, 7); ctx.stroke(); }
     else {
       ctx.beginPath();
@@ -1634,6 +1743,61 @@
       drawMatchaCup(ctx, cx, cy);
       ctx.fillStyle = C.skin; ctx.beginPath(); ctx.arc(cx + 3, cy + 1.2, 2.8, 0, 7); ctx.fill();
     }
+    if (eating) {
+      drawIskender(ctx, 4.5, -9.5, p);
+      ctx.fillStyle = C.skin; ctx.beginPath(); ctx.arc(-3.5, -9, 2.8, 0, 7); ctx.fill();
+      // fork: plate -> mouth
+      const hx = 11 - ek * 3, hy = -12 - ek * 11.5;
+      const tx = hx - 4.2 + ek * 0.4, ty = hy - 1.5 - ek * 1.2;
+      ctx.strokeStyle = '#c9ced8'; ctx.lineWidth = 1.1; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(hx + 1.5, hy + 0.8); ctx.lineTo(tx, ty); ctx.stroke();
+      ctx.lineWidth = 0.55;
+      for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - 2, ty - 0.6 + i * 0.75); ctx.stroke(); }
+      if (!p.sipped && ek > 0.02) { ctx.fillStyle = '#9a4f2a'; rr(ctx, tx - 3.4, ty - 1.4, 2.8, 2.2, 0.8); ctx.fill(); ctx.fillStyle = '#d9302c'; ctx.fillRect(tx - 3.2, ty - 1.5, 2.4, 0.7); }
+      ctx.fillStyle = C.skin; ctx.beginPath(); ctx.arc(hx, hy, 2.8, 0, 7); ctx.fill();
+    }
+    if (shining) {
+      // she raises a little star wand
+      const e = Math.min(1, (SHINE_DUR - p.shineT) * 5);
+      const hx = 9.5, hy = -13 - 11 * e;
+      ctx.strokeStyle = '#f4d58d'; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + 4.5, hy - 7); ctx.stroke();
+      ctx.fillStyle = C.skin; ctx.beginPath(); ctx.arc(hx, hy, 2.8, 0, 7); ctx.fill();
+      const sx = hx + 5.2, sy = hy - 8.2;
+      ctx.fillStyle = 'rgba(255,240,150,0.45)'; ctx.beginPath(); ctx.arc(sx, sy, 5 + Math.sin(t * 9) * 0.8, 0, 7); ctx.fill();
+      ctx.fillStyle = '#ffd43b'; starPath(ctx, sx, sy, 3.6, t * 3); ctx.fill();
+      ctx.fillStyle = '#fff'; starPath(ctx, sx - 0.4, sy - 0.4, 1.3, t * 3); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // İskender kebab on a plate: pide cubes, döner slices, tomato sauce, butter, yoghurt, pepper and tomato
+  function drawIskender(ctx, cx, cy, p) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.beginPath(); ctx.ellipse(cx, cy + 1.6, 9.5, 2.2, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(cx, cy, 9.5, 2.8, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#4c7fd6'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.ellipse(cx, cy, 8.4, 2.2, 0, 0, 7); ctx.stroke();
+    // pide cubes
+    ctx.fillStyle = '#e2b26a';
+    for (let i = 0; i < 4; i++) { rr(ctx, cx - 5.5 + i * 2.7, cy - 2.4 - (i % 2) * 0.4, 2.5, 2.1, 0.6); ctx.fill(); }
+    // döner slices
+    const sl = ['#8c4523', '#a8582f', '#7a3b1d', '#b0653a'];
+    for (let i = 0; i < 5; i++) {
+      ctx.fillStyle = sl[i % 4];
+      ctx.beginPath(); ctx.ellipse(cx - 4.6 + i * 2.2, cy - 3.6 - Math.sin(i * 1.3) * 0.5, 1.9, 1.05, -0.35 + i * 0.12, 0, 7); ctx.fill();
+    }
+    // tomato sauce + melted butter glaze
+    ctx.fillStyle = 'rgba(214,40,36,0.85)';
+    ctx.beginPath(); ctx.ellipse(cx - 1, cy - 4.1, 4.8, 1, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,214,90,0.8)'; ctx.beginPath(); ctx.ellipse(cx - 2.4, cy - 4.5, 1.6, 0.45, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(cx + 0.4, cy - 4.7, 1.2, 0.4);
+    // yoghurt dollop
+    ctx.fillStyle = '#fbfbf6'; ctx.beginPath(); ctx.arc(cx - 6.6, cy - 1.6, 1.9, 0, 7); ctx.arc(cx - 6.1, cy - 2.9, 1.2, 0, 7); ctx.fill();
+    // roasted green pepper + tomato
+    ctx.fillStyle = '#3f9b3a'; ctx.beginPath(); ctx.ellipse(cx + 6.3, cy - 1.5, 2.5, 0.85, -0.5, 0, 7); ctx.fill();
+    ctx.fillStyle = '#2c7a2a'; ctx.fillRect(cx + 8.1, cy - 3.2, 0.5, 1);
+    ctx.fillStyle = '#e8402f'; ctx.beginPath(); ctx.arc(cx + 4.3, cy - 2.4, 1.35, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.arc(cx + 3.9, cy - 2.8, 0.4, 0, 7); ctx.fill();
     ctx.restore();
   }
 
@@ -2007,6 +2171,7 @@
     };
     const L = G.L, t = G.t;
     for (const ch of ['boy', 'girl']) { const p = G.players[ch]; light(p.x + PW / 2, p.y + PH / 2, 165 + Math.sin(t * 6 + (ch === 'boy' ? 0 : 2)) * 4, 1); }
+    { const g = G.players.girl, e = shineEnv(g); if (e > 0) { const f = faceOf(G.players.boy), s = wandTip(g); light(f.x, f.y, 120 * e, 1); light((f.x + s.x) / 2, (f.y + s.y) / 2 - 12, 70 * e, 0.8); } }
     L.hearts.forEach(h => { if (!h.taken) light(h.x, h.y, 46, 0.9); });
     L.checkpoints.forEach((c, i) => { if (i && i <= G.cp) light(c.x, c.y - 30, 110, 0.9); else if (i) light(c.x, c.y - 30, 40, 0.6); });
     L.signs.forEach(s => light(s.x, s.y - 20, 50, 0.7));
@@ -2223,7 +2388,9 @@
     drawEntities(ctx, t);
     drawRope(ctx);
     const order = G.mode === 'online' ? [other(G.myChar), G.myChar] : ['boy', 'girl'];
+    drawShine(ctx, G.players.girl, G.players.boy, t, false);
     for (const ch of order) drawCharacter(ctx, G.players[ch], t);
+    drawShine(ctx, G.players.girl, G.players.boy, t, true);
     if (G.kissT > 0) {
       const m = kissMid(), k = 1.4 - G.kissT;
       const s = Math.min(1, k * 5) * (26 + Math.sin(k * 14) * 4);
@@ -2263,11 +2430,13 @@
     ctx.fillStyle = th.topLight; ctx.fillRect(0, groundY, G.cw, 2 * z);
     const cx = G.cw / 2;
     const b = menuPlayers.boy, g = menuPlayers.girl;
-    // the girl cycles: hop → dance → strawberry matcha
-    const phase = Math.floor(G.menuT / 5) % 3, pt = G.menuT % 5;
+    // the girl cycles: hop → dance → strawberry matcha → she lights him up while he eats İskender
+    const phase = Math.floor(G.menuT / 5) % 4, pt = G.menuT % 5;
     const hop = phase === 0 ? Math.max(0, Math.sin(G.menuT * 2.2)) * 10 : 0;
     g.act = phase === 1 ? 'dance' : phase === 2 ? 'matcha' : null; g.actT = pt;
-    b.act = phase === 1 && pt > 1.5 ? 'dance' : null; b.actT = pt;
+    b.act = phase === 1 && pt > 1.5 ? 'dance' : phase === 3 ? 'eat' : null; b.actT = pt;
+    if (phase === 3) { const k = sipPhase(pt); if (k > 0.9) { b.sipped = true; b.chewT = 0.9; } else if (k < 0.1) b.sipped = false; b.chewT = Math.max(0, (b.chewT || 0) - dt); }
+    g.shineT = phase === 3 && pt > 0.6 ? Math.max(0, SHINE_DUR - (pt - 0.6)) : 0; b.glowT = g.shineT;
     b.x = -46; b.y = -PH; b.face = 1; b.grounded = true; b.blinkT -= dt; if (b.blinkT < -0.12) b.blinkT = 2 + Math.random() * 3;
     g.x = 24; g.y = -PH - hop; g.face = -1; g.grounded = hop < 1; g.blinkT -= dt; if (g.blinkT < -0.12) g.blinkT = 2 + Math.random() * 3;
     ctx.setTransform(z, 0, 0, z, cx, groundY);
@@ -2276,7 +2445,9 @@
     ctx.strokeStyle = '#e3304b'; ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(ax, ay); ctx.quadraticCurveTo((ax + bx) / 2, Math.max(ay, by) + 16 - hop * 0.5, bx, by); ctx.stroke();
     ctx.fillStyle = '#ff2d55'; heartPath(ctx, (ax + bx) / 2, (ay + by) / 2 + 8 - hop * 0.25, 11); ctx.fill();
+    drawShine(ctx, g, b, G.menuT, false);
     drawCharacter(ctx, b, G.menuT); drawCharacter(ctx, g, G.menuT);
+    drawShine(ctx, g, b, G.menuT, true);
     if (Math.random() < dt * 1.2) G.particles.push({ x: (Math.random() - 0.5) * 60, y: -50, vx: (Math.random() - 0.5) * 20, vy: -40, life: 2, max: 2, color: '#ff7aa8', size: 5, type: 'heart', g: -5, rot: 0 });
     for (let i = G.particles.length - 1; i >= 0; i--) { const p = G.particles[i]; p.life -= dt; if (p.life <= 0) { G.particles.splice(i, 1); continue; } p.x += p.vx * dt; p.y += p.vy * dt; }
     if (g.act === 'dance' && Math.random() < dt * 3) G.particles.push({ x: g.x + PW / 2 + (Math.random() - 0.5) * 20, y: -46, vx: (Math.random() - 0.5) * 30, vy: -35, life: 1.6, max: 1.6, color: RAINBOW[Math.floor(Math.random() * 6)], size: 11, type: 'note', ch: Math.random() < 0.5 ? '♪' : '♫', g: 0, rot: 0 });
@@ -2287,6 +2458,13 @@
       ctx.font = `600 ${fs}px Fredoka, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.globalAlpha = Math.min(1, (pt - 0.3) * 4, (4.7 - pt) * 4);
       bubble(ctx, cx + (g.x + PW / 2) * z, groundY + (g.y - 16) * z, [tr('act.matcha')], fs);
+      ctx.globalAlpha = 1;
+    }
+    if (phase === 3 && pt > 0.3 && pt < 4.7) {
+      const fs = Math.round(Math.max(13, 7 * z));
+      ctx.font = `600 ${fs}px Fredoka, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.globalAlpha = Math.min(1, (pt - 0.3) * 4, (4.7 - pt) * 4);
+      bubble(ctx, cx + (b.x + PW / 2) * z, groundY + (b.y - 16) * z, [tr('act.eat')], fs);
       ctx.globalAlpha = 1;
     }
     drawAmbient(ctx, 'petal', dt);
@@ -2352,6 +2530,7 @@
   global.Game = {
     init, startLevel, stop, onNet, drawPreview,
     act(ch, kind) { return startAct(ch, kind, true); },
+    shine(ch) { return startShine(ch, true); },
     say(ch, i) { if (G.players) sayPhrase(ch, i, true); },
     chat(ch, text) { if (G.players) chatSay(ch, text, true); },
     setTyping(ch, on) { if (G.players) setTyping(ch, on, G.mode === 'online'); },

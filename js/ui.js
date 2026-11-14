@@ -382,6 +382,8 @@
     chips.forEach((label, i) => mk(label, 'love', () => Game.say(chatChar(), i)));
     mk(t('chat.dance'), 'fun', () => Game.act(chatChar(), 'dance'));
     mk(t('chat.matcha'), 'fun matcha', () => Game.act(chatChar(), 'matcha'));
+    mk(t('chat.eat'), 'fun eat', () => Game.act(chatChar(), 'eat'));
+    if (chatChar() === 'girl') mk(t('chat.shine'), 'fun shine', () => Game.shine('girl'));
     const who = $('#chat-who');
     who.style.display = App.mode === 'online' ? 'none' : '';
     who.textContent = chatChar() === 'girl' ? '👧' : '👦';

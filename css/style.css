@@ -307,6 +307,8 @@ body.in-game .lang-float { display: none; }
 .chip.love { background: linear-gradient(180deg, #fff, #ffe6ef); }
 .chip.fun { background: linear-gradient(180deg, #fff, #eef9e8); box-shadow: 0 2px 0 #cfe8c2, 0 4px 10px rgba(60,120,40,.12); }
 .chip.matcha { background: linear-gradient(180deg, #ffe6ef, #e2f5d8); }
+.chip.eat { background: linear-gradient(180deg, #fff4e0, #ffe0c2); }
+.chip.shine { background: linear-gradient(180deg, #fffbe0, #ffe9a8); box-shadow: 0 2px 0 #f0d77a, 0 0 12px rgba(255,210,80,.45); }
 .chip.popped { animation: chipPop .35s cubic-bezier(.3,1.8,.5,1); }
 @keyframes chipPop { 0% { transform: scale(.8); } 100% { transform: scale(1); } }
 .chat-bar {

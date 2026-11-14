@@ -75,6 +75,10 @@
         case 'type': this.tone(1200 + Math.random() * 300, 0.03, 'sine', 0.025); break;
         case 'boom': this.noise(0.4, 0.12, 260); this.tone(160, 0.3, 'sine', 0.12, 0.5); break;
         case 'whoosh': this.noise(0.5, 0.06, 1200); break;
+        case 'chomp': this.noise(0.06, 0.13, 700); this.noise(0.05, 0.1, 900, 0.11); this.tone(300, 0.06, 'sine', 0.05, 0.7, 0.02); break;
+        case 'shine':
+          [1047, 1319, 1568, 2093, 2637, 3136].forEach((f, i) => this.tone(f, 0.5, 'sine', 0.05, 1.01, i * 0.06));
+          this.tone(523, 1.2, 'triangle', 0.05, 2, 0); break;
         case 'sparkle': [1568, 2093, 2637].forEach((f, i) => this.tone(f, 0.2, 'triangle', 0.04, 0, i * 0.05)); break;
       }
     },
