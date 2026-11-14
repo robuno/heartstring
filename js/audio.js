@@ -68,6 +68,14 @@
           [659, 784, 988, 1318].forEach((f, i) => this.tone(f, 0.45, 'triangle', 0.1, 0, 0.14 + i * 0.09));
           break;
         case 'click': this.tone(880, 0.05, 'sine', 0.08); break;
+        case 'msg': this.tone(880, 0.12, 'sine', 0.12, 1.5); this.tone(1320, 0.18, 'triangle', 0.07, 1.2, 0.07); break;
+        case 'love': [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, 0.4, 'sine', 0.09, 0, i * 0.09)); break;
+        case 'sip': this.noise(0.18, 0.06, 1400); this.tone(500, 0.12, 'sine', 0.05, 1.4, 0.12); break;
+        case 'dance': [523, 659, 784, 659, 880, 784].forEach((f, i) => this.tone(f, 0.16, 'square', 0.035, 0, i * 0.13)); break;
+        case 'type': this.tone(1200 + Math.random() * 300, 0.03, 'sine', 0.025); break;
+        case 'boom': this.noise(0.4, 0.12, 260); this.tone(160, 0.3, 'sine', 0.12, 0.5); break;
+        case 'whoosh': this.noise(0.5, 0.06, 1200); break;
+        case 'sparkle': [1568, 2093, 2637].forEach((f, i) => this.tone(f, 0.2, 'triangle', 0.04, 0, i * 0.05)); break;
       }
     },
     setMusic(on) { this.musicOn = on; this.save(); if (this.musicGain) this.musicGain.gain.value = on ? 0.1 : 0; },

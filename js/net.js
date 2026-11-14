@@ -49,7 +49,7 @@
       const peer = new global.Peer({ debug: 1 });
       this.peer = peer;
       let done = false;
-      const timer = setTimeout(() => { if (!done) this.emit('error', { type: 'timeout', message: 'Could not reach the room. Check the code and try again.' }); }, 15000);
+      const timer = setTimeout(() => { if (!done) this.emit('error', { type: 'timeout', message: global.I18N ? global.I18N.t('net.timeout') : 'Could not reach the room. Check the code and try again.' }); }, 15000);
       peer.on('open', () => {
         const c = peer.connect(PREFIX + this.code, { reliable: true, serialization: 'json' });
         c.on('open', () => { done = true; clearTimeout(timer); });
@@ -57,7 +57,7 @@
       });
       peer.on('error', (e) => {
         done = true; clearTimeout(timer);
-        if (e.type === 'peer-unavailable') e.message = 'Room not found. Is the code right, and is your partner still on the lobby screen?';
+        if (e.type === 'peer-unavailable') e.message = global.I18N ? global.I18N.t('net.notFound') : 'Room not found.';
         this.emit('error', e);
       });
     },

@@ -712,7 +712,7 @@
             case 'S': L.spawn = { x: px + TILE / 2, y: py + TILE }; ch = '.'; break;
             case 'G': L.goal = { x: px + TILE / 2, y: py + TILE, rect: { x: px - 2 * TILE, y: py - 3 * TILE, w: 5 * TILE, h: 4 * TILE } }; ch = '.'; break;
             case 'H': L.heartSpots.push({ x: px + TILE / 2, y: py + TILE / 2 }); ch = '.'; break;
-            case 'T': L.signs.push({ x: px + TILE / 2, y: py + TILE, text: c.id === '__tip' ? world.tip : (c.sign || '') }); ch = '.'; break;
+            case 'T': L.signs.push({ x: px + TILE / 2, y: py + TILE, text: c.id === '__tip' ? world.tip : (c.sign || ''), key: c.id === '__tip' ? 'tip:' + wi : c.id }); ch = '.'; break;
             case 'p': case 'k': case 'P': {
               const kind = ch === 'P' ? 'latch' : 'any';
               const g = ci + ':' + (ch === 'p' ? 'a' : ch === 'k' ? 'b' : 'L');

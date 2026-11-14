@@ -14,17 +14,19 @@
 <body>
   <canvas id="game"></canvas>
 
+  <button class="lang-btn lang-float" id="btn-lang-menu" data-i18n-title="hud.lang">TR·EN</button>
+
   <!-- MAIN MENU -->
   <section class="screen" id="scr-menu">
     <div class="panel menu-panel">
       <h1 class="logo"><span class="l1">Heart</span><span class="l2">string</span></h1>
-      <p class="tagline">Two hearts · one red string · a hundred climbs</p>
-      <label class="name-field"><span>Your name</span><input id="in-name" maxlength="14" placeholder="e.g. Alex" autocomplete="off"></label>
+      <p class="tagline" data-i18n="menu.tagline">Two hearts · one red string · a hundred climbs</p>
+      <label class="name-field"><span data-i18n="menu.name">Your name</span><input id="in-name" maxlength="14" data-i18n-ph="menu.namePh" placeholder="e.g. Alex" autocomplete="off"></label>
       <div class="btn-col">
-        <button class="btn primary" id="btn-host">💌 Create a room</button>
-        <button class="btn" id="btn-join">🔑 Join with a code</button>
-        <button class="btn ghost" id="btn-local">🎮 Two players, one keyboard</button>
-        <button class="btn link" id="btn-help">How to play</button>
+        <button class="btn primary" id="btn-host" data-i18n="menu.host">💌 Create a room</button>
+        <button class="btn" id="btn-join" data-i18n="menu.join">🔑 Join with a code</button>
+        <button class="btn ghost" id="btn-local" data-i18n="menu.local">🎮 Two players, one keyboard</button>
+        <button class="btn link" id="btn-help" data-i18n="menu.help">How to play</button>
       </div>
     </div>
   </section>
@@ -32,12 +34,12 @@
   <!-- JOIN -->
   <section class="screen" id="scr-join">
     <div class="panel">
-      <h2>Join your partner</h2>
-      <p class="muted">Enter the 5-letter room code they sent you.</p>
+      <h2 data-i18n="join.title">Join your partner</h2>
+      <p class="muted" data-i18n="join.sub">Enter the 5-letter room code they sent you.</p>
       <input id="in-code" class="code-input" maxlength="5" placeholder="ABCDE" autocomplete="off" spellcheck="false">
       <div class="row">
-        <button class="btn ghost" data-back>Back</button>
-        <button class="btn primary" id="btn-join-go">Join 💞</button>
+        <button class="btn ghost" data-back data-i18n="back">Back</button>
+        <button class="btn primary" id="btn-join-go" data-i18n="join.go">Join 💞</button>
       </div>
       <p class="status" id="join-status"></p>
     </div>
@@ -47,24 +49,24 @@
   <section class="screen" id="scr-lobby">
     <div class="panel lobby-panel">
       <div id="lobby-online">
-        <p class="muted small-cap">Room code</p>
+        <p class="muted small-cap" data-i18n="lobby.code">Room code</p>
         <div class="room-code" id="room-code">·····</div>
         <div class="row center">
-          <button class="btn small" id="btn-copy-code">Copy code</button>
-          <button class="btn small" id="btn-copy-link">Copy invite link</button>
+          <button class="btn small" id="btn-copy-code" data-i18n="lobby.copyCode">Copy code</button>
+          <button class="btn small" id="btn-copy-link" data-i18n="lobby.copyLink">Copy invite link</button>
         </div>
-        <p class="status" id="lobby-status">Waiting for your partner…</p>
+        <p class="status" id="lobby-status" data-i18n="lobby.waiting">Waiting for your partner…</p>
       </div>
       <div id="lobby-local">
-        <h2>Who's who?</h2>
-        <p class="muted">Click a character to make it Player 1's.</p>
+        <h2 data-i18n="lobby.who">Who's who?</h2>
+        <p class="muted" data-i18n="lobby.whoSub">Click a character to make it Player 1's.</p>
       </div>
       <div class="char-row">
-        <button class="char-card" data-char="boy"><canvas width="200" height="200"></canvas><span class="char-name">Him</span><span class="char-owner"></span></button>
-        <button class="char-card" data-char="girl"><canvas width="200" height="200"></canvas><span class="char-name">Her</span><span class="char-owner"></span></button>
+        <button class="char-card" data-char="boy"><canvas width="200" height="200"></canvas><span class="char-name" data-i18n="char.boy">Him</span><span class="char-owner"></span></button>
+        <button class="char-card" data-char="girl"><canvas width="200" height="200"></canvas><span class="char-name" data-i18n="char.girl">Her</span><span class="char-owner"></span></button>
       </div>
       <div class="row">
-        <button class="btn ghost" id="btn-lobby-leave">Leave</button>
+        <button class="btn ghost" id="btn-lobby-leave" data-i18n="lobby.leave">Leave</button>
         <button class="btn primary" id="btn-lobby-go" disabled>Choose a level →</button>
       </div>
     </div>
@@ -74,12 +76,12 @@
   <section class="screen" id="scr-map">
     <div class="map-wrap">
       <header class="map-head">
-        <button class="btn ghost small" id="btn-map-back">← Lobby</button>
+        <button class="btn ghost small" id="btn-map-back" data-i18n="map.lobby">← Lobby</button>
         <div class="map-title">
           <h2 id="map-world-name">Blossom Meadow</h2>
           <div class="muted" id="map-stats"></div>
         </div>
-        <button class="btn primary small" id="btn-continue">Continue ▶</button>
+        <button class="btn primary small" id="btn-continue" data-i18n="map.continue">Continue ▶</button>
       </header>
       <nav class="world-tabs" id="world-tabs"></nav>
       <div class="level-path" id="level-path"></div>
@@ -96,25 +98,37 @@
         <span id="hud-time">⏱ 0:00</span>
         <span id="hud-deaths">💫 0</span>
         <span id="hud-ping" class="ping"></span>
-        <button class="icon-btn" id="btn-music" title="Music">♪</button>
-        <button class="icon-btn" id="btn-sfx" title="Sound effects">🔊</button>
-        <button class="icon-btn" id="btn-pause" title="Menu (Esc)">❚❚</button>
+        <button class="icon-btn lang-btn small-lang" id="btn-lang-hud" data-i18n-title="hud.lang">TR·EN</button>
+        <button class="icon-btn" id="btn-music" data-i18n-title="hud.music" title="Music">♪</button>
+        <button class="icon-btn" id="btn-sfx" data-i18n-title="hud.sfx" title="Sound effects">🔊</button>
+        <button class="icon-btn" id="btn-pause" data-i18n-title="hud.menu" title="Menu (Esc)">❚❚</button>
       </div>
     </div>
     <div class="hud-hint" id="hud-hint"></div>
+
+    <!-- CHAT -->
+    <div class="chat" id="chat">
+      <div class="chat-quick" id="chat-quick"></div>
+      <form class="chat-bar" id="chat-form" autocomplete="off">
+        <button type="button" class="chat-who" id="chat-who" data-i18n-title="chat.who"></button>
+        <input id="chat-in" maxlength="60" data-i18n-ph="chat.ph" placeholder="Say something sweet… (Enter)" spellcheck="false">
+        <button type="submit" class="chat-send" data-i18n-title="chat.send">💌</button>
+      </form>
+    </div>
   </div>
 
   <!-- PAUSE -->
   <div class="modal hidden" id="mdl-pause">
     <div class="panel modal-panel">
-      <h2>Taking a breather</h2>
+      <h2 data-i18n="pause.title">Taking a breather</h2>
       <p class="muted" id="pause-note"></p>
       <div class="btn-col">
-        <button class="btn primary" id="btn-resume">Resume</button>
-        <button class="btn" id="btn-restart">Restart stage</button>
-        <button class="btn" id="btn-tomap">Level map</button>
-        <button class="btn ghost" id="btn-pause-help">Controls</button>
-        <button class="btn ghost danger" id="btn-leave">Quit to main menu</button>
+        <button class="btn primary" id="btn-resume" data-i18n="pause.resume">Resume</button>
+        <button class="btn" id="btn-restart" data-i18n="pause.restart">Restart stage</button>
+        <button class="btn" id="btn-tomap" data-i18n="pause.map">Level map</button>
+        <button class="btn ghost" id="btn-pause-help" data-i18n="pause.controls">Controls</button>
+        <button class="btn ghost lang-btn" id="btn-lang-pause">TR·EN</button>
+        <button class="btn ghost danger" id="btn-leave" data-i18n="pause.quit">Quit to main menu</button>
       </div>
     </div>
   </div>
@@ -122,15 +136,15 @@
   <!-- WIN -->
   <div class="modal hidden" id="mdl-win">
     <div class="panel modal-panel win-panel">
-      <div class="win-heart">💞</div>
+      <div class="win-heart" id="win-icon">💞</div>
       <h2 id="win-title">Perfect teamwork!</h2>
       <div class="win-hearts" id="win-hearts"></div>
       <div class="win-stats" id="win-stats"></div>
       <div class="btn-col">
-        <button class="btn primary" id="btn-win-next">Next stage →</button>
+        <button class="btn primary" id="btn-win-next" data-i18n="win.next">Next stage →</button>
         <div class="row">
-          <button class="btn" id="btn-win-replay">Replay</button>
-          <button class="btn" id="btn-win-map">Level map</button>
+          <button class="btn" id="btn-win-replay" data-i18n="win.replay">Replay</button>
+          <button class="btn" id="btn-win-map" data-i18n="win.map">Level map</button>
         </div>
       </div>
       <p class="muted small" id="win-note"></p>
@@ -140,44 +154,24 @@
   <!-- HELP -->
   <div class="modal hidden" id="mdl-help">
     <div class="panel modal-panel help-panel">
-      <h2>How to play</h2>
-      <p class="muted">You are tied together by a red string. Nobody gets home alone — both of you must reach the heart arch.</p>
+      <h2 data-i18n="help.title">How to play</h2>
+      <p class="muted" data-i18n="help.sub"></p>
       <div class="help-grid">
         <div class="help-col">
-          <h3>Online (each on your own computer)</h3>
-          <ul class="keys">
-            <li><kbd>A</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>→</kbd> move</li>
-            <li><kbd>W</kbd> / <kbd>↑</kbd> / <kbd>Space</kbd> jump (hold = higher)</li>
-            <li><kbd>S</kbd> / <kbd>↓</kbd> <b>hold to anchor</b></li>
-            <li><kbd>E</kbd> / <kbd>Q</kbd> <b>hold to climb / pull the string</b></li>
-            <li><kbd>1</kbd>–<kbd>4</kbd> emotes ❤️ 👋 ✋ ⬆️</li>
-            <li><kbd>K</kbd> kiss 💋 (stand right next to each other)</li>
-          </ul>
+          <h3 data-i18n="help.online"></h3>
+          <ul class="keys" data-i18n-html="help.onlineKeys"></ul>
+          <h3 data-i18n="help.fun"></h3>
+          <ul class="keys" data-i18n-html="help.funKeys"></ul>
         </div>
         <div class="help-col">
-          <h3>Same keyboard</h3>
-          <ul class="keys">
-            <li>P1: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> · climb <kbd>E</kbd> · kiss <kbd>F</kbd> · emotes <kbd>1</kbd>–<kbd>4</kbd></li>
-            <li>P2: <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> · climb <kbd>R-Shift</kbd> or <kbd>/</kbd> · kiss <kbd>L</kbd> · emotes <kbd>7</kbd>–<kbd>0</kbd></li>
-          </ul>
-          <h3>Tricks</h3>
-          <ul class="tips">
-            <li>🪨 <b>Anchor</b> on solid ground to hold your partner when they fall.</li>
-            <li>🧗 Hold <b>climb</b> to shorten the string and pull yourself up to an anchored partner.</li>
-            <li>🧍 Stand on your partner's head to reach high ledges.</li>
-            <li>🧱 Jump at a wall and hold anchor to <b>grab it</b> — make yourself a step for your partner.</li>
-            <li>🚩 Flags save your spot. If one of you falls, you both go back.</li>
-          </ul>
+          <h3 data-i18n="help.local"></h3>
+          <ul class="keys" data-i18n-html="help.localKeys"></ul>
+          <h3 data-i18n="help.tricks"></h3>
+          <ul class="tips" data-i18n-html="help.tips"></ul>
         </div>
       </div>
-      <div class="legend">
-        <span><i class="sw teal"></i>Plate opens door while held</span>
-        <span><i class="sw gold"></i>Golden plates: press together</span>
-        <span><i class="sw pink"></i>Pink gate: only Her</span>
-        <span><i class="sw blue"></i>Blue gate: only Him</span>
-        <span>❄️ No anchoring on ice</span>
-      </div>
-      <button class="btn primary" data-close>Got it!</button>
+      <div class="legend" data-i18n-html="help.legend"></div>
+      <button class="btn primary" data-close data-i18n="help.ok">Got it!</button>
     </div>
   </div>
 
@@ -185,6 +179,7 @@
 
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="js/levels.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/net.js"></script>
   <script src="js/game.js"></script>
