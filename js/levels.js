@@ -16,7 +16,7 @@
  */
 (function (global) {
   'use strict';
-  const TILE = 32, CH = 16, PAD_TOP = 8, PAD_BOT = 8;
+  const TILE = 32, CH = 16, PAD_TOP = 8, PAD_BOT = 8, LEVELS = 300;
 
   function mulberry(seed) {
     let a = seed >>> 0;
@@ -54,6 +54,62 @@
     ['Base Camp', 'Love Letters', 'Promise Path', 'Twin Peaks', 'Brave Hearts', 'Together Ridge', 'Thousand Steps', 'Forever Falls', 'Final Ascent', 'Heart Summit'],
   ];
 
+  // ---------- HARD (101-200) and NIGHTMARE (201-300) ----------
+  // cfg: blob/ghost/eye = average monsters per chunk, bo = blackout gap [min,max] s, boom = explosion gap, spd = monster speed
+  const TIP_MON = { en: 'MONSTERS! Run away — or stand SIDE BY SIDE and press SUPER (Q / P). She melts them with her star wand, he punches them to pieces!', tr: 'CANAVARLAR! Kaçın — ya da YAN YANA durup SÜPER GÜÇ\'e basın (Q / P). Kız yıldızlı asasıyla eritir, erkek yumruklayıp parçalar!' };
+  const TIP_BO = { en: 'Power cuts! The lights can die at any moment — but the monsters\' eyes still glow in the dark.', tr: 'Elektrik kesintileri! Işıklar her an sönebilir — ama canavarların gözleri karanlıkta parlar.' };
+  const TIP_BOOM = { en: 'Red blinking ground is about to EXPLODE! Get away fast. Craters fill back in after a few seconds.', tr: 'Kırmızı yanıp sönen zemin PATLAMAK üzere! Hemen uzaklaşın. Çukurlar birkaç saniye sonra kapanır.' };
+  const TIP_NM = { en: 'NIGHTMARE: faster monsters, more blackouts, more explosions. Never let go of each other!', tr: 'KÂBUS: daha hızlı canavarlar, daha sık kesintiler ve patlamalar. Birbirinizi asla bırakmayın!' };
+  const HARD_DEF = [
+    // [theme, icon, en, tr, tip]
+    ['haunt', '🎃', 'Haunted Hollow', 'Perili Koru', TIP_MON],
+    ['storm', '⚡', 'Blackout Alley', 'Karanlık Sokak', TIP_BO],
+    ['crypt', '🕯️', 'Crypt of Echoes', 'Yankılar Mahzeni', null],
+    ['storm', '💥', 'Boom Quarry', 'Patlayan Ocak', TIP_BOOM],
+    ['bloodmoon', '🌕', 'Bloodmoon Marsh', 'Kızıl Ay Bataklığı', null],
+    ['haunt', '👻', 'Whispering Woods', 'Fısıldayan Orman', null],
+    ['crypt', '💀', 'Bone Catacombs', 'Kemik Katakombu', null],
+    ['storm', '🌩️', 'Thunder Spires', 'Gök Gürültüsü Kuleleri', null],
+    ['bloodmoon', '🌑', 'Red Eclipse', 'Kızıl Tutulma', null],
+    ['abyss', '🕳️', 'Abyss Gate', 'Uçurum Kapısı', null],
+    // nightmare
+    ['abyss', '😱', "Nightmare's Edge", 'Kâbusun Kıyısı', TIP_NM],
+    ['bloodmoon', '🎪', 'Shadow Carnival', 'Gölge Lunaparkı', null],
+    ['storm', '🏚️', 'Dead Lantern Town', 'Sönük Fener Kasabası', null],
+    ['crypt', '⚰️', 'Screaming Crypt', 'Çığlık Mahzeni', null],
+    ['haunt', '🧙', 'Witch Thicket', 'Cadı Çalılığı', null],
+    ['storm', '🔌', 'Eternal Blackout', 'Sonsuz Karanlık', null],
+    ['bloodmoon', '👹', 'Crimson Maw', 'Kızıl Ağız', null],
+    ['abyss', '🌀', 'Void Labyrinth', 'Boşluk Labirenti', null],
+    ['crypt', '☠️', 'Last Nightmare', 'Son Kâbus', null],
+    ['abyss', '🖤', 'Heart of the Night', 'Gecenin Kalbi', null],
+  ];
+  const lerp = (a, b, k) => a + (b - a) * k;
+  HARD_DEF.forEach((d, k) => {
+    const nm = k >= 10, hw = k % 10, f = hw / 9;
+    const cfg = nm
+      ? { blob: lerp(1.1, 1.8, f), ghost: lerp(0.5, 1, f), eye: lerp(0.3, 0.7, f), bo: [lerp(9, 6, f), lerp(14, 9, f)], boom: [lerp(6, 3.5, f), lerp(9, 6, f)], spd: lerp(1.2, 1.45, f) }
+      : { blob: lerp(0.5, 1.2, f), ghost: hw >= 2 ? lerp(0.2, 0.6, f) : 0.1, eye: hw >= 5 ? lerp(0.1, 0.35, f) : 0, bo: hw >= 1 ? [lerp(15, 9, f), lerp(22, 15, f)] : null, boom: hw >= 3 ? [lerp(11, 6, f), lerp(16, 10, f)] : null, spd: lerp(0.9, 1.15, f) };
+    WORLDS.push({ name: d[2], theme: d[0], icon: d[1], tip: d[4] ? d[4].en : null, tr: { name: d[3], tip: d[4] ? d[4].tr : null }, mode: nm ? 'nightmare' : 'hard', hard: cfg });
+  });
+  const MODES = [
+    { id: 'normal', from: 1, to: 100, worlds: [0, 10] },
+    { id: 'hard', from: 101, to: 200, worlds: [10, 20] },
+    { id: 'nightmare', from: 201, to: 300, worlds: [20, 30] },
+  ];
+  const ADJ = { en: ['Creeping', 'Hollow', 'Silent', 'Broken', 'Cursed', 'Shivering', 'Howling', 'Restless', 'Crooked', 'Forgotten'], tr: ['Sürünen', 'Boş', 'Sessiz', 'Kırık', 'Lanetli', 'Titreyen', 'Uluyan', 'Huzursuz', 'Eğri', 'Unutulmuş'] };
+  const NOUN = { en: ['Path', 'Hall', 'Bridge', 'Steps', 'Gate', 'Woods', 'Tunnel', 'Stairs', 'Graves', 'Shadows'], tr: ['Yol', 'Salon', 'Köprü', 'Basamaklar', 'Kapı', 'Orman', 'Tünel', 'Merdiven', 'Mezarlar', 'Gölgeler'] };
+  const NAMES_TR = {};
+  for (let wi = 10; wi < WORLDS.length; wi++) {
+    const en = [], tr = [];
+    for (let i = 0; i < 10; i++) {
+      const a = (i + wi * 3 + Math.floor(wi / 10) * 5) % 10, b = (i * 7 + wi + Math.floor(wi / 10) * 3) % 10;
+      en.push(ADJ.en[a] + ' ' + NOUN.en[b]); tr.push(ADJ.tr[a] + ' ' + NOUN.tr[b]);
+    }
+    en[9] = WORLDS[wi].name; tr[9] = WORLDS[wi].tr.name;
+    NAMES.push(en); NAMES_TR[wi] = tr;
+  }
+
   // style: grass | snow | sand | rock | brick | cloud | crystal
   const THEMES = {
     meadow: { sky: ['#ffc9de', '#fff3e6'], far: '#f5b3cc', mid: '#a7dc97', ground: '#9c6b45', groundDark: '#7b4f2f', top: '#79c95f', topLight: '#a6e58a', plank: '#c08a58', style: 'grass', sun: '#fff1a8', particle: 'petal', decor: ['flower', 'flower', 'tuft', 'tuft'], music: 0 },
@@ -65,6 +121,12 @@
     sky: { sky: ['#86cdfd', '#eaf7ff'], far: '#ffffff', mid: '#d9efff', ground: '#e7eefb', groundDark: '#c3d2ea', top: '#ffffff', topLight: '#ffffff', plank: '#f5d58a', style: 'cloud', sun: '#fff8c8', particle: 'feather', decor: ['star', 'tuft2'], music: 9 },
     ruins: { sky: ['#cbb48b', '#f0e3c5'], far: '#ab9774', mid: '#8b7858', ground: '#8f8576', groundDark: '#6c6356', top: '#7fa36a', topLight: '#a2c88a', plank: '#8a6a45', style: 'brick', sun: '#fff3cf', particle: 'leaf', decor: ['column', 'tuft', 'gear'], music: 4 },
     night: { sky: ['#090d2a', '#232c5c'], far: '#1a2150', mid: '#11173a', ground: '#323a57', groundDark: '#222840', top: '#3f6d5b', topLight: '#64957d', plank: '#5b4a3a', style: 'grass', moon: true, particle: 'star', decor: ['glowflower', 'tuft', 'glowflower'], dark: true, music: 6 },
+    // hard / nightmare modes
+    haunt: { sky: ['#160d29', '#3d2a55'], far: '#2b1f45', mid: '#1c1430', ground: '#3b2f3f', groundDark: '#2a2030', top: '#4d6b4a', topLight: '#6f8f68', plank: '#4f3d33', style: 'grass', moon: true, particle: 'firefly', decor: ['mushroom', 'fern', 'tuft', 'bones'], dark: true, music: 6 },
+    crypt: { sky: ['#11141d', '#2c3446'], far: '#262d3d', mid: '#1a1f2b', ground: '#555a66', groundDark: '#3b3f49', top: '#6d7380', topLight: '#9097a5', plank: '#5a4a3a', style: 'brick', particle: 'dust', decor: ['column', 'pebble', 'bones'], dark: true, music: 4 },
+    storm: { sky: ['#20263a', '#58637d'], far: '#3a4458', mid: '#2a3142', ground: '#4a4f5c', groundDark: '#353945', top: '#6a7385', topLight: '#8f99ad', plank: '#6b5a48', style: 'rock', particle: 'dust', decor: ['pebble', 'vent', 'gear'], storm: true, music: 10 },
+    bloodmoon: { sky: ['#24050d', '#6e1a26'], far: '#4a0f1c', mid: '#2e0a13', ground: '#3d2228', groundDark: '#2a171b', top: '#7a2a36', topLight: '#a8434f', plank: '#5a3030', style: 'grass', moon: true, redMoon: true, particle: 'ember', decor: ['glowflower', 'tuft', 'bones'], dark: true, music: 10 },
+    abyss: { sky: ['#05040c', '#1a1238'], far: '#140e2c', mid: '#0c0820', ground: '#2a2440', groundDark: '#1b172b', top: '#5b4a9a', topLight: '#8a76d6', plank: '#3d3456', style: 'crystal', particle: 'sparkle', decor: ['crystal', 'pebble'], cave: true, dark: true, music: 5 },
     summit: { sky: ['#ff9fc6', '#ffd9aa'], far: '#e993b6', mid: '#c46d99', ground: '#7f5b7c', groundDark: '#5f4261', top: '#ffe4f1', topLight: '#ffffff', plank: '#b07a8a', style: 'snow', sun: '#fff0d0', particle: 'heart', decor: ['heartflower', 'pine', 'tuft2'], music: 1 },
   };
 
@@ -651,10 +713,11 @@
     const wi = Math.floor((n - 1) / 10), local = (n - 1) % 10;
     const out = [];
     if (local === 0 && WORLDS[wi].tip) out.push({ id: '__tip', mirror: false });
-    const count = 3 + Math.floor(local / 3) + Math.floor(wi / 2);
-    const maxD = Math.min(5, 1 + Math.floor(wi / 2) + Math.floor(local / 4));
+    const hard = wi >= 10, hw = (wi - 10) % 10, nm = wi >= 20;
+    const count = hard ? 4 + Math.floor(local / 4) + Math.floor(hw / 4) + (nm ? 1 : 0) : 3 + Math.floor(local / 3) + Math.floor(wi / 2);
+    const maxD = hard ? Math.min(5, 2 + Math.floor(hw / 3) + Math.floor(local / 6) + (nm ? 1 : 0)) : Math.min(5, 1 + Math.floor(wi / 2) + Math.floor(local / 4));
     const minD = Math.max(1, maxD - 2);
-    const all = Object.values(CHUNKS).filter(c => !c.special && c.world <= wi);
+    const all = Object.values(CHUNKS).filter(c => !c.special && c.world <= Math.min(9, wi));
     let pool = all.filter(c => c.diff <= maxD && c.diff >= minD);
     if (pool.length < 3) pool = all.filter(c => c.diff <= maxD);
     const used = new Set();
@@ -664,7 +727,7 @@
       let cands = pool.filter(c => !used.has(c.id));
       if (!cands.length) { used.clear(); cands = pool.filter(c => c.id !== prev); }
       if (!cands.length) cands = pool;
-      const weights = cands.map(c => (c.world === wi ? 6 : (wi - c.world <= 2 ? 2.5 : 1)) * (c.diff === maxD ? 1.6 : 1));
+      const weights = cands.map(c => (hard ? 1 : c.world === wi ? 6 : (wi - c.world <= 2 ? 2.5 : 1)) * (c.diff === maxD ? 1.6 : 1));
       let sum = weights.reduce((a, b) => a + b, 0), r = R() * sum, idx = 0;
       while (idx < cands.length - 1 && r >= weights[idx]) { r -= weights[idx]; idx++; }
       const c = cands[idx];
@@ -677,7 +740,7 @@
   }
 
   function buildLevel(n) {
-    n = Math.max(1, Math.min(100, n | 0));
+    n = Math.max(1, Math.min(LEVELS, n | 0));
     const wi = Math.floor((n - 1) / 10), local = (n - 1) % 10;
     const world = WORLDS[wi], theme = THEMES[world.theme];
     const R = mulberry(n * 7919 + 101);
@@ -694,7 +757,7 @@
     const grid = [];
     for (let y = 0; y < H; y++) grid.push(new Array(W).fill('.'));
     const L = {
-      n, wi, local, world, theme, themeKey: world.theme, name: NAMES[wi][local], W, H, grid,
+      n, wi, local, world, theme, themeKey: world.theme, name: NAMES[wi][local], W, H, grid, hard: world.hard || null, monsters: [],
       spawn: null, goal: null, checkpoints: [], heartSpots: [], hearts: [], plates: [], doorGroup: {},
       groups: {}, movers: [], saws: [], signs: [], dark: !!theme.dark, chunks: seq.map(s => s.id + (s.mirror ? '*' : '')),
     };
@@ -768,8 +831,45 @@
         L.decor.push({ x: x * TILE + 6 + DR() * 20, y: y * TILE, type: theme.decor[Math.floor(DR() * theme.decor.length)], v: DR() });
       }
     }
+    if (L.hard) placeMonsters(L, prepared);
     return L;
   }
 
-  global.HS = { TILE, CH, PAD_TOP, PAD_BOT, WORLDS, THEMES, NAMES, CHUNKS, buildLevel, mulberry, LEVELS: 100 };
+  // monsters stand on solid floor (blobs) or float in open air (ghosts / eyes); never near the spawn, a flag or the goal
+  function placeMonsters(L, prepared) {
+    const MR = mulberry(L.n * 977 + 13), cfg = L.hard, grid = L.grid;
+    const safe = (x) => {
+      if (Math.abs(x * TILE - L.spawn.x) < 12 * TILE) return false;
+      if (L.goal && Math.abs(x * TILE - L.goal.x) < 5 * TILE) return false;
+      for (const c of L.checkpoints) if (Math.abs(x * TILE - c.x) < 3 * TILE) return false;
+      return true;
+    };
+    const count = (avg) => Math.floor(avg) + (MR() < avg % 1 ? 1 : 0);
+    let id = 0;
+    prepared.forEach((pc, ci) => {
+      if (ci === 0 || ci === prepared.length - 1 || pc.c.special || pc.c.id === '__tip') return;
+      // plate/door puzzles split the pair up (no super power possible) — keep those monster-free
+      if (pc.rows.some(r => /[pkPDKQbg]/.test(r))) return;
+      const cw = pc.rows[0].length, x0 = pc.x0;
+      const floors = [], air = [];
+      for (let x = x0 + 2; x < x0 + cw - 2; x++) {
+        if (!safe(x)) continue;
+        for (let y = PAD_TOP + 1; y < PAD_TOP + CH - 1; y++) {
+          if (grid[y][x] === '.' && grid[y - 1][x] === '.' && grid[y + 1][x] === '#' && grid[y][x - 1] !== '#' && grid[y][x + 1] !== '#') floors.push({ x, y });
+          if (y < PAD_TOP + CH - 3 && grid[y][x] === '.' && grid[y + 1][x] === '.' && grid[y - 1][x] === '.') air.push({ x, y });
+        }
+      }
+      const take = (list, type, k) => {
+        for (let i = 0; i < k && list.length; i++) {
+          const j = Math.floor(MR() * list.length), c = list.splice(j, 1)[0];
+          L.monsters.push({ id: id++, type, x: c.x * TILE + TILE / 2, y: type === 'blob' ? (c.y + 1) * TILE : c.y * TILE + TILE / 2 });
+        }
+      };
+      take(floors, 'blob', count(cfg.blob));
+      take(air, 'ghost', count(cfg.ghost));
+      take(air, 'eye', count(cfg.eye));
+    });
+  }
+
+  global.HS = { TILE, CH, PAD_TOP, PAD_BOT, WORLDS, THEMES, NAMES, NAMES_TR, MODES, CHUNKS, buildLevel, mulberry, LEVELS };
 })(typeof window !== 'undefined' ? window : globalThis);

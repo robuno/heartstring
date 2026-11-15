@@ -333,3 +333,23 @@ body.chatting .chat-bar { background: rgba(255,255,255,.95); box-shadow: 0 0 0 4
   .chat-quick .chip.love:nth-child(n+3) { display: none; }
   .hud-hint { top: 96px; font-size: 12px; }
 }
+
+/* ---------- play modes: Normal / Hard / Nightmare ---------- */
+.mode-tabs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 2px 2px 8px; }
+.mode-tab {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  font: 600 14px Fredoka, sans-serif; color: #5a2b4c; cursor: pointer;
+  padding: 7px 16px; border-radius: 14px; border: 2px solid transparent;
+  background: rgba(255,255,255,.75); box-shadow: 0 2px 0 rgba(0,0,0,.08);
+  transition: transform .15s, box-shadow .15s;
+}
+.mode-tab small { font-weight: 500; font-size: 11px; opacity: .7; }
+.mode-tab:hover { transform: translateY(-2px); }
+.mode-tab.active { border-color: #ff5d8f; background: #fff; box-shadow: 0 4px 14px rgba(255,93,143,.3); }
+.mode-tab.mode-hard { background: linear-gradient(180deg, #f1e6ff, #dccbff); color: #4a2a7a; }
+.mode-tab.mode-hard.active { border-color: #8a5cff; box-shadow: 0 4px 16px rgba(138,92,255,.45); }
+.mode-tab.mode-nightmare { background: linear-gradient(180deg, #3a1020, #170812); color: #ffd0dc; }
+.mode-tab.mode-nightmare.active { border-color: #ff3355; box-shadow: 0 0 18px rgba(255,40,80,.6); animation: nmPulse 1.6s ease-in-out infinite; }
+@keyframes nmPulse { 50% { box-shadow: 0 0 26px rgba(255,40,80,.9); } }
+body[data-map-mode="hard"] #scr-map .map-wrap { background: linear-gradient(180deg, rgba(60,30,100,.25), rgba(255,255,255,0)); border-radius: 22px; }
+body[data-map-mode="nightmare"] #scr-map .map-wrap { background: linear-gradient(180deg, rgba(80,0,20,.35), rgba(0,0,0,.1)); border-radius: 22px; }

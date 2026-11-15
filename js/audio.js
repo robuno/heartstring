@@ -79,6 +79,18 @@
         case 'shine':
           [1047, 1319, 1568, 2093, 2637, 3136].forEach((f, i) => this.tone(f, 0.5, 'sine', 0.05, 1.01, i * 0.06));
           this.tone(523, 1.2, 'triangle', 0.05, 2, 0); break;
+        case 'magic': [784, 988, 1175, 1568, 1976, 2349].forEach((f, i) => this.tone(f, 0.35, 'triangle', 0.06, 1.02, i * 0.05)); this.noise(0.5, 0.04, 3000, 0.05); break;
+        case 'wedding': [1047, 1319, 1568, 1319, 1568, 2093].forEach((f, i) => { this.tone(f, 0.9, 'sine', 0.07, 1, i * 0.16); this.tone(f * 2.01, 0.6, 'sine', 0.02, 1, i * 0.16); }); break;
+        case 'morph': this.noise(0.25, 0.1, 900); this.tone(300, 0.3, 'sine', 0.12, 3, 0.03); break;
+        case 'punch': this.noise(0.12, 0.25, 220); this.tone(110, 0.2, 'square', 0.12, 0.4); this.tone(900, 0.08, 'square', 0.05, 0.5, 0.02); break;
+        case 'crunch': this.noise(0.18, 0.18, 1500); this.noise(0.25, 0.12, 400, 0.05); break;
+        case 'melt': this.tone(520, 0.9, 'sine', 0.08, 0.25); this.tone(530, 0.9, 'sine', 0.05, 0.3, 0.05); this.noise(0.6, 0.04, 2500); break;
+        case 'growl': this.tone(90 + Math.random() * 30, 0.6, 'sawtooth', 0.05, 0.7); this.tone(60, 0.6, 'square', 0.03, 0.8); break;
+        case 'powerdown': this.tone(440, 0.8, 'sawtooth', 0.06, 0.08); this.tone(60, 0.5, 'square', 0.04, 1); this.noise(0.2, 0.08, 4000); break;
+        case 'powerup': this.tone(60, 0.5, 'sawtooth', 0.05, 7); this.noise(0.08, 0.06, 3000); break;
+        case 'beep': this.tone(1320, 0.06, 'square', 0.04); break;
+        case 'explode': this.noise(0.9, 0.3, 160); this.noise(0.4, 0.16, 700); this.tone(70, 0.6, 'sine', 0.25, 0.4); break;
+        case 'heartbeat': this.tone(62, 0.16, 'sine', 0.35, 0.7); this.tone(58, 0.16, 'sine', 0.25, 0.7, 0.2); break;
         case 'sparkle': [1568, 2093, 2637].forEach((f, i) => this.tone(f, 0.2, 'triangle', 0.04, 0, i * 0.05)); break;
       }
     },

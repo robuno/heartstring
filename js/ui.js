@@ -40,8 +40,8 @@
     return { hearts, done };
   }
   function nextUnfinished() {
-    for (let n = 1; n <= 100; n++) if (!App.prog.done[n]) return n;
-    return 100;
+    for (let n = 1; n <= HS.LEVELS; n++) if (!App.prog.done[n]) return n;
+    return HS.LEVELS;
   }
 
   // ---------------- helpers ----------------
@@ -320,7 +320,7 @@
   }
   function handleReq(m) {
     if (!['map', 'level', 'lobby'].includes(m.to)) return;
-    if (m.to === 'level') { const n = m.n | 0; if (n < 1 || n > 100) return; }
+    if (m.to === 'level') { const n = m.n | 0; if (n < 1 || n > HS.LEVELS) return; }
     request({ to: m.to, n: m.n });
   }
   function doNav(m) {
@@ -336,7 +336,7 @@
   }
 
   function startGame(n) {
-    n = Math.max(1, Math.min(100, n));
+    n = Math.max(1, Math.min(HS.LEVELS, n));
     App.curLevel = n;
     App.prog.last = n; saveProg();
     let schemes, myChar;
@@ -383,7 +383,9 @@
     mk(t('chat.dance'), 'fun', () => Game.act(chatChar(), 'dance'));
     mk(t('chat.matcha'), 'fun matcha', () => Game.act(chatChar(), 'matcha'));
     mk(t('chat.eat'), 'fun eat', () => Game.act(chatChar(), 'eat'));
+    mk(t('chat.orange'), 'fun eat', () => Game.act(chatChar(), 'orange'));
     if (chatChar() === 'girl') mk(t('chat.shine'), 'fun shine', () => Game.shine('girl'));
+    mk(t('chat.magic'), 'fun shine', () => Game.magic(chatChar()));
     const who = $('#chat-who');
     who.style.display = App.mode === 'online' ? 'none' : '';
     who.textContent = chatChar() === 'girl' ? '👧' : '👦';
@@ -473,7 +475,7 @@
     $('#btn-pause-help').onclick = () => { click(); openModal('mdl-help'); Game.setPaused(true); };
     $('#btn-leave').onclick = () => { click(); closeModals(); leaveAll(); };
 
-    $('#btn-win-next').onclick = () => { click(); closeModals(); request({ to: 'level', n: Math.min(100, App.curLevel + 1) }); };
+    $('#btn-win-next').onclick = () => { click(); closeModals(); request({ to: 'level', n: Math.min(HS.LEVELS, App.curLevel + 1) }); };
     $('#btn-win-replay').onclick = () => { click(); closeModals(); request({ to: 'level', n: App.curLevel }); };
     $('#btn-win-map').onclick = () => { click(); closeModals(); request({ to: 'map' }); };
 
@@ -495,11 +497,11 @@
     const rec = App.prog.done[res.n];
     const isBest = !rec || res.time < (rec.time || 1e9);
     App.prog.done[res.n] = { hearts: Math.max(res.hearts, rec ? rec.hearts || 0 : 0), total: res.total, time: Math.min(res.time, rec ? rec.time || 1e9 : 1e9) };
-    App.prog.last = Math.min(100, res.n + 1);
+    App.prog.last = Math.min(HS.LEVELS, res.n + 1);
     saveProg();
     if (App.screen !== 'game') return;
     const msgs = t('win.msgs');
-    $('#win-title').textContent = res.n === 100 ? t('win.final') : msgs[res.n % msgs.length];
+    $('#win-title').textContent = res.n === 100 ? t('win.final') : res.n === 200 ? t('win.finalHard') : res.n === 300 ? t('win.finalNm') : msgs[res.n % msgs.length];
     const ICONS = { fireworks: '🎆', starRain: '🌟', heartSpiral: '💞', unicorn: '🦄', confetti: '🎉', bigHeart: '💖', balloons: '🎈' };
     const icon = $('#win-icon');
     icon.textContent = ICONS[res.celeb] || '💞';
@@ -507,8 +509,8 @@
     let hs = '';
     for (let i = 0; i < res.total; i++) hs += `<span class="hh big ${i < res.hearts ? 'on' : ''}" style="animation-delay:${0.25 + i * 0.18}s">♥</span>`;
     $('#win-hearts').innerHTML = hs;
-    $('#win-stats').innerHTML = `<div><b>${fmtTime(res.time)}</b><span>${t('win.time')}${isBest ? t('win.best') : ''}</span></div><div><b>${res.deaths}</b><span>${t('win.restarts')}</span></div><div><b>${res.n}/100</b><span>${t('win.stage')}</span></div>`;
-    $('#btn-win-next').style.display = res.n >= 100 ? 'none' : '';
+    $('#win-stats').innerHTML = `<div><b>${fmtTime(res.time)}</b><span>${t('win.time')}${isBest ? t('win.best') : ''}</span></div><div><b>${res.deaths}</b><span>${t('win.restarts')}</span></div><div><b>${res.n}/${HS.LEVELS}</b><span>${t('win.stage')}</span></div>`;
+    $('#btn-win-next').style.display = res.n >= HS.LEVELS ? 'none' : '';
     $('#win-note').textContent = App.mode === 'online' && App.role === 'guest' ? t('win.either') : '';
     $('#mdl-win .win-panel').dataset.celeb = res.celeb || '';
     openModal('mdl-win');
@@ -517,9 +519,23 @@
   // ---------------- level map ----------------
   const NODE_POS = [[8, 74], [24, 58], [40, 72], [56, 56], [72, 70], [88, 52], [74, 34], [56, 22], [36, 32], [16, 20]];
   function renderMap() {
+    const mi = Math.min(HS.MODES.length - 1, Math.floor(App.worldTab / 10));
+    const mt = $('#mode-tabs');
+    mt.innerHTML = '';
+    HS.MODES.forEach((m, k) => {
+      let done = 0;
+      for (let n = m.from; n <= m.to; n++) if (App.prog.done[n]) done++;
+      const b = document.createElement('button');
+      b.className = 'mode-tab mode-' + m.id + (k === mi ? ' active' : '');
+      b.innerHTML = `<span>${t('mode.' + m.id)}</span><small>${done}/100</small>`;
+      b.onclick = () => { click(); App.worldTab = m.worlds[0]; renderMap(); };
+      mt.appendChild(b);
+    });
+    document.body.dataset.mapMode = HS.MODES[mi].id;
     const tabs = $('#world-tabs');
     tabs.innerHTML = '';
     HS.WORLDS.forEach((w, i) => {
+      if (i < HS.MODES[mi].worlds[0] || i >= HS.MODES[mi].worlds[1]) return;
       let done = 0;
       for (let k = 1; k <= 10; k++) if (App.prog.done[i * 10 + k]) done++;
       const b = document.createElement('button');
@@ -568,9 +584,9 @@
     if (App.screen === 'menu') show('menu');
     // shortcut: ?play=12 jumps straight into stage 12 on one keyboard
     const play = parseInt(new URLSearchParams(location.search).get('play'), 10);
-    if (play >= 1 && play <= 100) { App.mode = 'local'; App.lobby = { boy: 'p1', girl: 'p2' }; startGame(play); }
+    if (play >= 1 && play <= HS.LEVELS) { App.mode = 'local'; App.lobby = { boy: 'p1', girl: 'p2' }; startGame(play); }
     const mapW = parseInt(new URLSearchParams(location.search).get('map'), 10);
-    if (mapW >= 1 && mapW <= 10) { App.mode = 'local'; App.lobby = { boy: 'p1', girl: 'p2' }; App.worldTab = mapW - 1; show('map'); renderMap(); }
+    if (mapW >= 1 && mapW <= HS.WORLDS.length) { App.mode = 'local'; App.lobby = { boy: 'p1', girl: 'p2' }; App.worldTab = mapW - 1; show('map'); renderMap(); }
     window.addEventListener('beforeunload', () => { try { Net.leave(); } catch (e) { /* ignore */ } });
   });
   window.App = App;
