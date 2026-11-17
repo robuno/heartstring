@@ -386,6 +386,7 @@
     mk(t('chat.orange'), 'fun eat', () => Game.act(chatChar(), 'orange'));
     if (chatChar() === 'girl') mk(t('chat.shine'), 'fun shine', () => Game.shine('girl'));
     mk(t('chat.magic'), 'fun shine', () => Game.magic(chatChar()));
+    if (chatChar() === 'girl') mk(t('chat.outfit'), 'fun shine', () => Game.outfit('girl'));
     const who = $('#chat-who');
     who.style.display = App.mode === 'online' ? 'none' : '';
     who.textContent = chatChar() === 'girl' ? '👧' : '👦';
