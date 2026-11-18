@@ -13,9 +13,9 @@
   const ROPE_N = 18;
 
   const KEYMAPS = {
-    p1: { left: ['KeyA'], right: ['KeyD'], jump: ['KeyW', 'Space'], anchor: ['KeyS'], reel: ['KeyE'], emote: ['Digit1', 'Digit2', 'Digit3', 'Digit4'], kiss: ['KeyF'], dance: ['KeyZ'], matcha: ['KeyX'], say: ['KeyC'], eat: ['KeyV'], shine: ['KeyG'], orange: ['KeyR'], magic: ['KeyT'], super: ['KeyQ'], outfit: ['KeyB'] },
-    p2: { left: ['ArrowLeft'], right: ['ArrowRight'], jump: ['ArrowUp'], anchor: ['ArrowDown'], reel: ['ShiftRight', 'Slash', 'Period', 'Numpad0'], emote: ['Digit7', 'Digit8', 'Digit9', 'Digit0'], kiss: ['KeyL', 'Numpad1'], dance: ['KeyN'], matcha: ['KeyM'], say: ['KeyJ'], eat: ['KeyK'], shine: ['KeyI'], orange: ['KeyO'], magic: ['KeyU'], super: ['KeyP', 'Numpad2'], outfit: ['KeyY'] },
-    solo: { left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], jump: ['KeyW', 'ArrowUp', 'Space'], anchor: ['KeyS', 'ArrowDown', 'ShiftLeft'], reel: ['KeyE', 'ShiftRight'], emote: ['Digit1', 'Digit2', 'Digit3', 'Digit4'], kiss: ['KeyK', 'KeyF'], dance: ['KeyZ'], matcha: ['KeyX'], say: ['Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'], eat: ['KeyV'], shine: ['KeyG'], orange: ['KeyR'], magic: ['KeyT'], super: ['KeyQ'], outfit: ['KeyB'] },
+    p1: { left: ['KeyA'], right: ['KeyD'], jump: ['KeyW', 'Space'], anchor: ['KeyS'], reel: ['KeyE'], emote: ['Digit1', 'Digit2', 'Digit3', 'Digit4'], kiss: ['KeyF'], dance: ['KeyZ'], matcha: ['KeyX'], say: ['KeyC'], eat: ['KeyV'], shine: ['KeyG'], orange: ['KeyR'], magic: ['KeyT'], super: ['KeyQ'], outfit: ['KeyB'], wardrobe: ['KeyH'] },
+    p2: { left: ['ArrowLeft'], right: ['ArrowRight'], jump: ['ArrowUp'], anchor: ['ArrowDown'], reel: ['ShiftRight', 'Slash', 'Period', 'Numpad0'], emote: ['Digit7', 'Digit8', 'Digit9', 'Digit0'], kiss: ['KeyL', 'Numpad1'], dance: ['KeyN'], matcha: ['KeyM'], say: ['KeyJ'], eat: ['KeyK'], shine: ['KeyI'], orange: ['KeyO'], magic: ['KeyU'], super: ['KeyP', 'Numpad2'], outfit: ['KeyY'], wardrobe: ['Semicolon'] },
+    solo: { left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], jump: ['KeyW', 'ArrowUp', 'Space'], anchor: ['KeyS', 'ArrowDown', 'ShiftLeft'], reel: ['KeyE', 'ShiftRight'], emote: ['Digit1', 'Digit2', 'Digit3', 'Digit4'], kiss: ['KeyK', 'KeyF'], dance: ['KeyZ'], matcha: ['KeyX'], say: ['Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'], eat: ['KeyV'], shine: ['KeyG'], orange: ['KeyR'], magic: ['KeyT'], super: ['KeyQ'], outfit: ['KeyB'], wardrobe: ['KeyH'] },
   };
   const tr = (k, v) => (global.I18N ? global.I18N.t(k, v) : k);
   const trList = (k, i) => { const l = tr(k); return Array.isArray(l) ? l[i] || l[0] : ''; };
@@ -41,7 +41,7 @@
       reel: 0, prevX: 0, prevY: 0, lastDx: 0, lastDy: 0, squash: 0, walkT: 0, blinkT: Math.random() * 3,
       emote: null, emoteT: 0, inUpdraft: false, local: true, ropeHang: 0,
       act: null, actT: 0, actDur: 0, actFx: 0, sipped: false, idleT: 0, say: null, typing: false, typingT: 0, sayIdx: 0,
-      shineT: 0, glowT: 0, trailT: 0, chewT: 0, morphT: 0, morphForm: null, bridalT: 0, outfit: 0, groom: false, castT: 0, superT: 0, punchT: 0, superCd: 0,
+      shineT: 0, glowT: 0, trailT: 0, chewT: 0, morphT: 0, morphForm: null, bridalT: 0, outfit: 0, groom: false, cust: defaultCust(), castT: 0, superT: 0, punchT: 0, superCd: 0,
       tx: undefined, ty: undefined, nvx: 0, nvy: 0, netAge: 0, reelSfx: 0,
     };
   }
@@ -223,6 +223,8 @@
     const tag = e.target && e.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
     G.keys.add(e.code);
+    const wdm = document.getElementById('mdl-wardrobe');
+    if (wdm && !wdm.classList.contains('hidden')) return;
     if (G.state === 'play' && !G.paused) {
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
       if (e.repeat) return;
@@ -240,6 +242,7 @@
         if (km.orange.includes(e.code)) startAct(ch, 'orange', true);
         if (km.magic.includes(e.code)) doMagic(ch, true);
         if (km.outfit.includes(e.code)) cycleOutfit(ch, true);
+        if (ch === 'girl' && km.wardrobe.includes(e.code) && G.hooks.wardrobe) G.hooks.wardrobe();
         if (km.super.includes(e.code)) trySuper(ch, true);
         const si = km.say.indexOf(e.code);
         if (si >= 0) {
@@ -265,7 +268,7 @@
     G.celeb = null; G.fx = []; G.fxCritters = [];
     G.players = { boy: makePlayer('boy'), girl: makePlayer('girl') };
     initHard();
-    G.players.girl.outfit = G.savedOutfit || 0;
+    applyWardrobe(G.players.girl, G.wardrobe);
     if (G.mode === 'online') { G.players.boy.local = G.myChar === 'boy'; G.players.girl.local = G.myChar === 'girl'; }
     for (const m of L.movers) { m.x = m.x0; m.y = m.y0; m.dx = 0; m.dy = 0; }
     updateMovers(true);
@@ -941,20 +944,52 @@
     if (send) netSend({ t: 'magic', ch });
     return true;
   }
-  // ---------- her wardrobe: pink dress, sundress, ball gown, wedding gown ----------
-  const OUTFITS = 4;
+  // ---------- her wardrobe: presets + a full customiser (colours, shoes, hair accessory, hat, crown) ----------
+  const WD_KEY = 'heartstring.wardrobe';
+  const NOUTFITS = 6; // 0 pink dress, 1 sundress, 2 ball gown, 3 wedding gown, 4 kimono, 5 sailor dress
+  function defaultCust() { return { dress: null, shoe: 0, shoeColor: null, hair: -1, hairColor: null, hat: -1, crown: -1 }; }
+  const DEFAULT_CUST = defaultCust();
+  function cleanCust(c) {
+    const d = defaultCust(); if (!c || typeof c !== 'object') return d;
+    const hex = (v) => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v : null);
+    const ni = (v, lo, hi, def) => (Number.isInteger(v) && v >= lo && v <= hi ? v : def);
+    d.dress = hex(c.dress); d.shoe = ni(c.shoe, 0, 4, 0); d.shoeColor = hex(c.shoeColor);
+    d.hair = ni(c.hair, -1, 5, -1); d.hairColor = hex(c.hairColor); d.hat = ni(c.hat, -1, 4, -1); d.crown = ni(c.crown, -1, 4, -1);
+    return d;
+  }
+  function loadWardrobe() {
+    try { const w = JSON.parse(localStorage.getItem(WD_KEY)); if (w) return { o: ((w.o | 0) % NOUTFITS + NOUTFITS) % NOUTFITS, c: cleanCust(w.c) }; } catch (e) { /* ignore */ }
+    return { o: 0, c: defaultCust() };
+  }
+  function saveWardrobe() { try { localStorage.setItem(WD_KEY, JSON.stringify(G.wardrobe)); } catch (e) { /* ignore */ } }
+  function applyWardrobe(p, w) { if (!p || !w) return; p.outfit = (((w.o | 0) % NOUTFITS) + NOUTFITS) % NOUTFITS; p.cust = cleanCust(w.c); }
+  G.wardrobe = loadWardrobe();
+  function wardrobeFx(g) {
+    if (!g) return;
+    const cx = g.x + PW / 2, cy = g.y + PH / 2, cols = ['#ffd1e8', '#ffffff', '#ffe066', '#c9b6ff'];
+    for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; spawnParticle(cx, cy, Math.cos(a) * 130, Math.sin(a) * 130 - 30, 0.8, cols[i % 4], 3 + Math.random() * 2.5, i % 3 ? 'star5' : 'heart', 80, { drag: 0.93, vr: 6 }); }
+    spawnParticle(cx, cy, 0, 0, 0.6, '#ff8fd8', 10, 'ring', 0, { grow: 3.2, lw: 3 });
+  }
+  function getWardrobe() { return { o: G.wardrobe.o, c: Object.assign({}, G.wardrobe.c) }; }
+  // part = { o?: outfit index, c?: { dress, shoe, shoeColor, hair, hairColor, hat, crown } }
+  function setWardrobe(part, send) {
+    const W = G.wardrobe;
+    if (part.o !== undefined) W.o = ((part.o % NOUTFITS) + NOUTFITS) % NOUTFITS;
+    if (part.c) W.c = cleanCust(Object.assign({}, W.c, part.c));
+    saveWardrobe();
+    const g = G.players && G.players.girl;
+    if (g && (g.local || G.mode !== 'online')) { applyWardrobe(g, W); wardrobeFx(g); Sfx.play('magic'); }
+    if (send !== false && G.mode === 'online') netSend({ t: 'wardrobe', w: JSON.stringify(W) });
+  }
   function cycleOutfit(ch, send, to) {
     if (ch !== 'girl' || !G.players) return false;
     const g = G.players.girl;
-    g.outfit = to !== undefined ? ((to % OUTFITS) + OUTFITS) % OUTFITS : (g.outfit + 1) % OUTFITS;
-    if (g.local) G.savedOutfit = g.outfit;
-    g.emote = tr('act.outfit' + g.outfit); g.emoteT = 2.2;
+    g.outfit = to !== undefined ? ((to % NOUTFITS) + NOUTFITS) % NOUTFITS : ((g.outfit > 3 ? -1 : g.outfit) + 1) % 4;
+    if (g.local) { G.wardrobe.o = g.outfit; saveWardrobe(); }
+    g.emote = tr('act.outfit' + Math.min(g.outfit, 3)); g.emoteT = 2.2;
     g.act = null;
     Sfx.play(g.outfit === 3 ? 'wedding' : 'magic');
-    const cx = g.x + PW / 2, cy = g.y + PH / 2;
-    const cols = [['#ff7aa8', '#ffd0e2'], ['#ffd24d', '#fff3b0'], ['#b79cff', '#9be7ff'], ['#ffffff', '#ffd6e7']][g.outfit];
-    for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; spawnParticle(cx, cy, Math.cos(a) * 140, Math.sin(a) * 140 - 30, 0.8, cols[i % 2], 3 + Math.random() * 2.5, i % 3 ? 'star5' : 'heart', 80, { drag: 0.93, vr: 6 }); }
-    spawnParticle(cx, cy, 0, 0, 0.6, cols[0], 10, 'ring', 0, { grow: 3.4, lw: 3 });
+    wardrobeFx(g);
     if (send) netSend({ t: 'outfit', o: g.outfit });
     return true;
   }
@@ -1495,7 +1530,7 @@
     if (G.netAcc < 1 / 30) return;
     G.netAcc = 0;
     const p = G.players[G.myChar];
-    netSend({ t: 's', x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10, vx: Math.round(p.vx), vy: Math.round(p.vy), f: p.face, a: p.anchored ? 1 : 0, w: p.wallSide, g: p.grounded ? 1 : 0, r: Math.round(p.reel), tt: G.t, lv: G.L.n, o: p.outfit | 0 });
+    netSend({ t: 's', x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10, vx: Math.round(p.vx), vy: Math.round(p.vy), f: p.face, a: p.anchored ? 1 : 0, w: p.wallSide, g: p.grounded ? 1 : 0, r: Math.round(p.reel), tt: G.t, lv: G.L.n, wd: (p.char === 'girl' && ((G.wdTick = (G.wdTick | 0) + 1) % 30 === 1)) ? JSON.stringify({ o: p.outfit, c: p.cust }) : undefined });
   }
   function onNet(m) {
     if (!G.players || !G.L) return;
@@ -1504,7 +1539,7 @@
       case 's':
         if (m.lv !== G.L.n) return;
         if (G.respawnT > 0.3) return;
-        if (m.o !== undefined && o.char === 'girl') o.outfit = m.o | 0;
+        if (m.wd && o.char === 'girl' && m.wd !== o._wd) { o._wd = m.wd; try { applyWardrobe(o, JSON.parse(m.wd)); } catch (e) { /* ignore */ } }
         o.tx = m.x; o.ty = m.y; o.nvx = m.vx; o.nvy = m.vy; o.face = m.f; o.anchored = !!m.a; o.wallSide = m.w || 0;
         if (m.g && !o.grounded && o.nvy >= 0) o.squash = 0.15;
         o.grounded = !!m.g; o.reel = m.r || 0; o.netAge = 0;
@@ -1522,6 +1557,7 @@
       case 'act': startAct(other(G.myChar), m.a, false, true); break;
       case 'shine': startShine('girl', false); break;
       case 'outfit': cycleOutfit('girl', false, m.o | 0); break;
+      case 'wardrobe': try { const w = JSON.parse(m.w); applyWardrobe(G.players.girl, w); wardrobeFx(G.players.girl); } catch (e) { /* ignore */ } break;
       case 'magic': doMagic(m.ch === 'girl' ? 'girl' : 'boy', false); break;
       case 'super': if (G.mon) applySuper(m.ch === 'girl' ? 'girl' : 'boy', Array.isArray(m.ids) ? m.ids : []); break;
       case 'bomb': if (G.bombs) addBomb(m.tx | 0, m.ty | 0, false); break;
@@ -2206,6 +2242,7 @@
     const glowing = !girl && p.glowT > 0;
     const chewing = (eating || orange) && (p.chewT > 0 || (ek > 0.9));
     const outfit = girl ? (p.outfit || 0) : 0;
+    const cu = p.cust || DEFAULT_CUST, dcol = girl ? cu.dress : null;
     const bride = girl && ((p.bridalT || 0) > 0 || outfit === 3);
     const groom = !girl && !!p.groom;
     const punching = !girl && (p.punchT || 0) > 0;
@@ -2228,11 +2265,14 @@
       ctx.beginPath(); ctx.ellipse(0, -1, 14, 4, 0, 0, 7); ctx.fill();
     }
     // legs
-    ctx.fillStyle = C.shoe;
+    const shoeCol = (girl && p.cust && p.cust.shoeColor) || C.shoe;
+    ctx.fillStyle = shoeCol;
+    const shoeStyle = girl ? (p.cust ? p.cust.shoe : 0) : 0;
+    const leg = (x, y, w, h) => { if (girl) drawShoe(ctx, x, y, w, h, shoeStyle, shoeCol); else { rr(ctx, x, y, w, h, 2); ctx.fill(); } };
     const la = moving ? Math.sin(wt) * 4 : dance ? Math.sin(db) * 3.5 : 0;
-    if (air) { rr(ctx, -6, -9, 5, 6, 2); ctx.fill(); rr(ctx, 1, -7, 5, 6, 2); ctx.fill(); }
-    else if (crouch) { rr(ctx, -9, -5, 6, 5, 2); ctx.fill(); rr(ctx, 3, -5, 6, 5, 2); ctx.fill(); }
-    else { rr(ctx, -6 + la * 0.6, -6 - Math.max(0, la) * 0.3, 5, 6, 2); ctx.fill(); rr(ctx, 1 - la * 0.6, -6 - Math.max(0, -la) * 0.3, 5, 6, 2); ctx.fill(); }
+    if (air) { leg(-6, -9, 5, 6); leg(1, -7, 5, 6); }
+    else if (crouch) { leg(-9, -5, 6, 5); leg(3, -5, 6, 5); }
+    else { leg(-6 + la * 0.6, -6 - Math.max(0, la) * 0.3, 5, 6); leg(1 - la * 0.6, -6 - Math.max(0, -la) * 0.3, 5, 6); }
 
     ctx.translate(0, crouch + bob);
     if (bride) {
@@ -2249,7 +2289,7 @@
       ctx.beginPath(); ctx.moveTo(-11, -30); ctx.quadraticCurveTo(-17 + sw, -22, -12 + sw, -12); ctx.lineTo(-6, -16); ctx.closePath(); ctx.fill();
     }
     // body
-    ctx.fillStyle = C.body;
+    ctx.fillStyle = dcol || C.body;
     if (bride) {
       // wedding gown: fitted bodice, wide flowing skirt with a scalloped lace hem
       const sway = Math.sin(t * 3) * 0.8 + (moving ? Math.sin(wt) * 1.2 : 0);
@@ -2273,7 +2313,7 @@
     } else if (girl && outfit === 1) {
       // sunny yellow sundress with white polka dots
       const sway = Math.sin(t * 3) * 0.6 + (moving ? Math.sin(wt) : 0);
-      const gg = ctx.createLinearGradient(0, -20, 0, -3); gg.addColorStop(0, '#ffe066'); gg.addColorStop(1, '#ffc233');
+      const gg = ctx.createLinearGradient(0, -20, 0, -3); gg.addColorStop(0, dcol ? shade(dcol, 0.2) : '#ffe066'); gg.addColorStop(1, dcol || '#ffc233');
       ctx.fillStyle = gg;
       ctx.beginPath(); ctx.moveTo(-5.5, -19.5); ctx.lineTo(5.5, -19.5); ctx.lineTo(5, -13); ctx.quadraticCurveTo(11, -7, 12.5 + sway, -3); ctx.quadraticCurveTo(0, -1, -12.5 + sway, -3); ctx.quadraticCurveTo(-11, -7, -5, -13); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#ffffff'; for (const [dx, dy] of [[-6, -6], [-1, -8], [5, -5.5], [-3, -3.8], [8, -3.5], [2, -11.5], [-7.5, -4]]) { ctx.beginPath(); ctx.arc(dx, dy, 0.9, 0, 7); ctx.fill(); }
@@ -2283,7 +2323,7 @@
     } else if (girl && outfit === 2) {
       // princess ball gown: lilac-to-blue gradient, big skirt with stars and a pink sash
       const sway = Math.sin(t * 2.6) * 1 + (moving ? Math.sin(wt) * 1.4 : 0);
-      const gg = ctx.createLinearGradient(0, -20, 0, 0); gg.addColorStop(0, '#c9b6ff'); gg.addColorStop(0.55, '#a58cf0'); gg.addColorStop(1, '#7ec9ff');
+      const gg = ctx.createLinearGradient(0, -20, 0, 0); gg.addColorStop(0, dcol ? shade(dcol, 0.3) : '#c9b6ff'); gg.addColorStop(0.55, dcol || '#a58cf0'); gg.addColorStop(1, dcol ? shade(dcol, -0.25) : '#7ec9ff');
       ctx.fillStyle = gg;
       ctx.beginPath(); ctx.moveTo(-5.5, -20); ctx.lineTo(5.5, -20); ctx.lineTo(5, -13); ctx.quadraticCurveTo(12, -7, 14.5 + sway, -1);
       for (let i = 0; i < 5; i++) { const x = 14.5 + sway - (i + 1) * (29 / 5); ctx.quadraticCurveTo(x + 2.9, 1.8, x, -1); }
@@ -2293,9 +2333,32 @@
       ctx.fillStyle = '#ffe9a8';
       for (const [dx, dy, r] of [[-8, -5, 1.5], [-2, -7.5, 1.1], [6, -4.5, 1.4], [0, -2.5, 1], [9, -8, 0.9], [-9.5, -9, 0.9]]) { starPath(ctx, dx, dy, r * 1.6, t * 0.6 + dx); ctx.fill(); }
       ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.ellipse(-5, -9.5, 1.2, 3.4, 0.4, 0, 7); ctx.fill();
+    } else if (girl && outfit === 4) {
+      // kimono dress: sakura print, white collar, golden obi with a big bow at the back
+      const kc = dcol || '#e8527a', sway = Math.sin(t * 3) * 0.6 + (moving ? Math.sin(wt) : 0);
+      ctx.fillStyle = kc;
+      ctx.beginPath(); ctx.moveTo(-5.5, -19.5); ctx.lineTo(5.5, -19.5); ctx.lineTo(5.5, -13); ctx.quadraticCurveTo(9.5, -7, 10.5 + sway, -1.5); ctx.lineTo(-10.5 + sway, -1.5); ctx.quadraticCurveTo(-9.5, -7, -5.5, -13); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (const [dx, dy] of [[-6, -5], [-1, -8], [5, -4.5], [-3.5, -3], [7, -8], [1, -2.4]]) for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; ctx.beginPath(); ctx.arc(dx + Math.cos(a) * 0.9, dy + Math.sin(a) * 0.9, 0.7, 0, 7); ctx.fill(); }
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(-5.5, -19.5); ctx.lineTo(-1.5, -19.5); ctx.lineTo(2, -13.5); ctx.lineTo(0.6, -13); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffd86b'; ctx.fillRect(-5.8, -14.2, 11.6, 3.4);
+      ctx.beginPath(); ctx.ellipse(-9, -12.6, 3.6, 2.4, -0.4, 0, 7); ctx.ellipse(-10, -9, 3, 2, 0.5, 0, 7); ctx.fill();
+      ctx.fillStyle = '#e6b94a'; ctx.beginPath(); ctx.ellipse(-7, -12.6, 1.4, 1.8, 0, 0, 7); ctx.fill();
+    } else if (girl && outfit === 5) {
+      // sailor dress: white blouse, big collar with stripes, red bow and a pleated skirt
+      const sc = dcol || '#3b5b9d', sway = Math.sin(t * 3) * 0.6 + (moving ? Math.sin(wt) : 0);
+      ctx.fillStyle = sc;
+      ctx.beginPath(); ctx.moveTo(-5.8, -12); ctx.lineTo(5.8, -12); ctx.quadraticCurveTo(10.5, -8, 11.5 + sway, -3); ctx.lineTo(-11.5 + sway, -3); ctx.quadraticCurveTo(-10.5, -8, -5.8, -12); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = shade(sc, -0.25); ctx.lineWidth = 0.6;
+      for (const x of [-6, -2, 2, 6]) { ctx.beginPath(); ctx.moveTo(x * 0.6, -11.5); ctx.lineTo(x * 1.7 + sway, -3.3); ctx.stroke(); }
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(-11.5 + sway, -4.6, 23, 1);
+      ctx.fillStyle = '#ffffff'; rr(ctx, -5.5, -19.5, 11, 8.5, 2); ctx.fill();
+      ctx.fillStyle = sc; ctx.beginPath(); ctx.moveTo(-5.5, -19.5); ctx.lineTo(5.5, -19.5); ctx.lineTo(0.5, -12.2); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(-4, -18.3); ctx.lineTo(0.2, -13.5); ctx.moveTo(4, -18.3); ctx.lineTo(0.9, -13.7); ctx.stroke();
+      ctx.fillStyle = '#ff4f6d'; ctx.beginPath(); ctx.moveTo(0.5, -14); ctx.lineTo(-2.6, -15.6); ctx.lineTo(-2.6, -12.4); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(0.5, -14); ctx.lineTo(3.6, -15.6); ctx.lineTo(3.6, -12.4); ctx.closePath(); ctx.fill();
     } else if (girl) {
       ctx.beginPath(); ctx.moveTo(-6, -19); ctx.lineTo(6, -19); ctx.quadraticCurveTo(9, -10, 10, -5); ctx.lineTo(-10, -5); ctx.quadraticCurveTo(-9, -10, -6, -19); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = C.bodyDark; ctx.fillRect(-10, -7, 20, 2);
+      ctx.fillStyle = dcol ? shade(dcol, -0.2) : C.bodyDark; ctx.fillRect(-10, -7, 20, 2);
       // the letter "i" on her dress (un-flipped so it always reads correctly)
       ctx.save(); ctx.scale(p.face, 1);
       ctx.fillStyle = '#ffffff';
@@ -2351,50 +2414,16 @@
     if (girl) {
       ctx.beginPath(); ctx.arc(0, -31, 11.2, Math.PI * 0.98, Math.PI * 2.02); ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.moveTo(-11, -32); ctx.quadraticCurveTo(-2, -28, 4, -34); ctx.quadraticCurveTo(8, -29, 11, -31); ctx.lineTo(10, -37); ctx.lineTo(-10, -37); ctx.closePath(); ctx.fill();
-      if (bride) {
-        // tiara with little flowers
-        ctx.fillStyle = '#ffd86b';
-        ctx.beginPath(); ctx.moveTo(-7, -40); ctx.lineTo(-5, -45); ctx.lineTo(-2.5, -41.5); ctx.lineTo(0.5, -47); ctx.lineTo(3, -41.5); ctx.lineTo(5.5, -45); ctx.lineTo(7, -40); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#9be7ff'; ctx.beginPath(); ctx.arc(0.5, -43.6, 1.2, 0, 7); ctx.fill();
-        ctx.fillStyle = '#ff8fb8'; ctx.beginPath(); ctx.arc(-5, -43, 0.8, 0, 7); ctx.arc(5.5, -43, 0.8, 0, 7); ctx.fill();
-        for (const [fx, fy] of [[-9.5, -38.5], [9.5, -38.5]]) {
-          ctx.fillStyle = '#ffffff'; for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; ctx.beginPath(); ctx.arc(fx + Math.cos(a) * 1.5, fy + Math.sin(a) * 1.5, 1.2, 0, 7); ctx.fill(); }
-          ctx.fillStyle = '#ffcf4d'; ctx.beginPath(); ctx.arc(fx, fy, 0.9, 0, 7); ctx.fill();
-        }
-      } else if (outfit === 1) {
-        // straw sun hat with a pink ribbon
-        ctx.fillStyle = '#f0cd7a'; ctx.beginPath(); ctx.ellipse(0, -40, 15, 4, -0.05, 0, 7); ctx.fill();
-        ctx.fillStyle = '#e0b85a'; ctx.beginPath(); ctx.ellipse(0, -39.2, 14, 2.4, -0.05, 0, Math.PI); ctx.fill();
-        ctx.fillStyle = '#f6dc92'; ctx.beginPath(); ctx.arc(0, -41, 8, Math.PI, 0); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#ff6fa3'; ctx.fillRect(-8, -42.6, 16, 2.2);
-        ctx.beginPath(); ctx.moveTo(6, -42); ctx.lineTo(11, -39); ctx.lineTo(7.5, -38); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(-4, -45, 1.1, 0, 7); ctx.arc(2, -46, 1.1, 0, 7); ctx.fill();
-      } else if (outfit === 2) {
-        // silver tiara with a star, hair bow stays small beside it
-        ctx.fillStyle = '#e8ecf7';
-        ctx.beginPath(); ctx.moveTo(-7, -40); ctx.lineTo(-5.5, -44); ctx.lineTo(-2.5, -41.5); ctx.lineTo(0.5, -47); ctx.lineTo(3.5, -41.5); ctx.lineTo(6, -44); ctx.lineTo(7.5, -40); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#ffd43b'; starPath(ctx, 0.5, -46.5, 2.6, t * 2); ctx.fill();
-        ctx.fillStyle = '#ff8fd0'; ctx.beginPath(); ctx.arc(-5.5, -43, 0.9, 0, 7); ctx.arc(6, -43, 0.9, 0, 7); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(-7, -40.5, 14.5, 0.8);
-      } else {
-      // bow
-      ctx.fillStyle = C.bow;
-      ctx.save(); ctx.translate(-5, -41); ctx.rotate(-0.3);
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-7, -4); ctx.lineTo(-7, 4); ctx.closePath(); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(7, -4); ctx.lineTo(7, 4); ctx.closePath(); ctx.fill();
-      ctx.beginPath(); ctx.arc(0, 0, 2.2, 0, 7); ctx.fill(); ctx.restore();
-      }
+      const hatI = cu.hat >= 0 ? cu.hat : (outfit === 1 ? 1 : 0);
+      const crownI = cu.crown >= 0 ? cu.crown : (bride ? 1 : outfit === 2 ? 2 : 0);
+      const hairI = cu.hair >= 0 ? cu.hair : ((hatI || crownI) ? 0 : 1);
+      drawHairAcc(ctx, hairI, cu.hairColor || C.bow, t);
+      drawHat(ctx, hatI, t);
+      drawCrown(ctx, crownI, t);
     } else {
       ctx.beginPath(); ctx.arc(0, -31, 11.2, Math.PI * 0.95, Math.PI * 2.05); ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.moveTo(-11, -31); ctx.lineTo(-8, -27); ctx.lineTo(-5, -31); ctx.lineTo(-1, -28); ctx.lineTo(3, -32); ctx.lineTo(7, -29); ctx.lineTo(11, -32); ctx.lineTo(11, -36); ctx.lineTo(-11, -36); ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.moveTo(-2, -41); ctx.quadraticCurveTo(2, -46, 6, -43); ctx.quadraticCurveTo(3, -42, 2, -40); ctx.closePath(); ctx.fill();
-      if (groom) {
-        // top hat with a pink band
-        ctx.fillStyle = '#17151d'; ctx.beginPath(); ctx.ellipse(0, -39.5, 11.5, 2.8, 0, 0, 7); ctx.fill();
-        rr(ctx, -7, -52, 14, 13, 2); ctx.fill();
-        ctx.fillStyle = '#ff5d8f'; ctx.fillRect(-7, -43.6, 14, 2.6);
-        ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(-5.2, -50.5, 1.6, 9);
-      }
     }
     // face
     const blink = p.blinkT < 0 || kissing || sk > 0.6;
@@ -2574,6 +2603,133 @@
     ctx.fillStyle = '#e8402f'; ctx.beginPath(); ctx.arc(cx + 4.3, cy - 2.4, 1.35, 0, 7); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.arc(cx + 3.9, cy - 2.8, 0.4, 0, 7); ctx.fill();
     ctx.restore();
+  }
+
+  function shade(hex, k) {
+    const n = parseInt(hex.slice(1), 16), f = k >= 0 ? (v) => Math.round(v + (255 - v) * k) : (v) => Math.round(v * (1 + k));
+    return '#' + [f(n >> 16), f((n >> 8) & 255), f(n & 255)].map(v => v.toString(16).padStart(2, '0')).join('');
+  }
+  // her shoes: 0 flats, 1 boots, 2 sneakers, 3 mary janes, 4 glitter
+  function drawShoe(ctx, x, y, w, h, style, col) {
+    ctx.fillStyle = col; rr(ctx, x, y, w, h, 2); ctx.fill();
+    if (style === 1) {
+      rr(ctx, x, y - 4.5, w, h, 1.6); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x, y - 4.5, w, 1.3);
+      ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(x, y + h - 1.4, w, 1.4);
+    } else if (style === 2) {
+      ctx.fillStyle = '#ffffff'; rr(ctx, x + w - 2.8, y + 1.4, 2.8, h - 3, 1); ctx.fill(); ctx.fillRect(x, y + h - 1.3, w, 1.3);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(x + 1, y + 0.6, 1.6, 0.7);
+    } else if (style === 3) {
+      ctx.fillStyle = shade(col, 0.45); ctx.fillRect(x, y + 1.6, w, 0.9);
+      ctx.fillStyle = '#ffd86b'; ctx.beginPath(); ctx.arc(x + w / 2, y + 2.05, 0.8, 0, 7); ctx.fill();
+    } else if (style === 4) {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      for (const [dx, dy] of [[1, 1], [3.2, 2.6], [1.4, 4], [3.8, 0.8]]) ctx.fillRect(x + dx, y + dy, 0.9, 0.9);
+    }
+  }
+  // hair accessory: 0 none, 1 bow, 2 flower, 3 star clip, 4 butterfly, 5 heart clip
+  function drawHairAcc(ctx, i, col, t) {
+    if (!i) return;
+    ctx.save(); ctx.translate(-5, -41); ctx.fillStyle = col;
+    if (i === 1) {
+      ctx.rotate(-0.3);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-7, -4); ctx.lineTo(-7, 4); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(7, -4); ctx.lineTo(7, 4); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 0, 2.2, 0, 7); ctx.fill();
+    } else if (i === 2) {
+      for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; ctx.beginPath(); ctx.arc(Math.cos(a) * 3.2, Math.sin(a) * 3.2, 2.5, 0, 7); ctx.fill(); }
+      ctx.fillStyle = '#ffd43b'; ctx.beginPath(); ctx.arc(0, 0, 2, 0, 7); ctx.fill();
+    } else if (i === 3) {
+      starPath(ctx, 0, 0, 5, 0.2); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.7)'; starPath(ctx, -0.6, -0.6, 1.8, 0.2); ctx.fill();
+    } else if (i === 4) {
+      const fl = Math.sin(t * 6) * 0.15;
+      ctx.save(); ctx.rotate(-0.2);
+      for (const sd of [-1, 1]) { ctx.save(); ctx.scale(sd, 1 + fl); ctx.beginPath(); ctx.ellipse(3.6, -2, 3.8, 2.6, -0.5, 0, 7); ctx.ellipse(3, 2.2, 2.8, 2, 0.5, 0, 7); ctx.fill(); ctx.restore(); }
+      ctx.fillStyle = shade(col, -0.45); ctx.beginPath(); ctx.ellipse(0, 0, 0.9, 3, 0, 0, 7); ctx.fill();
+      ctx.restore();
+    } else if (i === 5) {
+      heartPath(ctx, 0, 0, 8); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.ellipse(-1.6, -1.6, 1.2, 0.7, -0.6, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+  // hats: 0 none, 1 sun hat, 2 beret, 3 witch hat, 4 cat ears
+  function drawHat(ctx, i, t) {
+    if (!i) return;
+    if (i === 1) {
+      ctx.fillStyle = '#f0cd7a'; ctx.beginPath(); ctx.ellipse(0, -40, 15, 4, -0.05, 0, 7); ctx.fill();
+      ctx.fillStyle = '#e0b85a'; ctx.beginPath(); ctx.ellipse(0, -39.2, 14, 2.4, -0.05, 0, Math.PI); ctx.fill();
+      ctx.fillStyle = '#f6dc92'; ctx.beginPath(); ctx.arc(0, -41, 8, Math.PI, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ff6fa3'; ctx.fillRect(-8, -42.6, 16, 2.2);
+      ctx.beginPath(); ctx.moveTo(6, -42); ctx.lineTo(11, -39); ctx.lineTo(7.5, -38); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(-4, -45, 1.1, 0, 7); ctx.arc(2, -46, 1.1, 0, 7); ctx.fill();
+    } else if (i === 2) {
+      ctx.fillStyle = '#d9425f'; ctx.beginPath(); ctx.ellipse(-1, -41.5, 11.5, 5.2, -0.15, 0, 7); ctx.fill();
+      ctx.fillStyle = '#b8304a'; ctx.beginPath(); ctx.ellipse(-0.5, -38.6, 9.5, 1.6, -0.1, 0, Math.PI); ctx.fill();
+      ctx.fillStyle = '#d9425f'; ctx.fillRect(-0.2, -47.8, 1.8, 3);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.ellipse(-5, -43.5, 3, 1.2, -0.3, 0, 7); ctx.fill();
+    } else if (i === 3) {
+      ctx.fillStyle = '#3a2a5a'; ctx.beginPath(); ctx.ellipse(0, -40, 15, 3.6, -0.05, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-8, -40); ctx.quadraticCurveTo(-2, -47, 3, -56); ctx.quadraticCurveTo(6, -55, 8.5, -40); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ff8fd0'; ctx.fillRect(-8.2, -44.2, 16.5, 2.6);
+      ctx.fillStyle = '#ffd43b'; starPath(ctx, 0.5, -43, 2.1, t); ctx.fill();
+    } else if (i === 4) {
+      ctx.fillStyle = '#2a2030';
+      ctx.beginPath(); ctx.moveTo(-9.5, -39.5); ctx.lineTo(-10, -49); ctx.lineTo(-3.2, -42.5); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(9.5, -39.5); ctx.lineTo(10.5, -49); ctx.lineTo(3.4, -42.5); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ff9ec4';
+      ctx.beginPath(); ctx.moveTo(-8.4, -41); ctx.lineTo(-8.8, -46); ctx.lineTo(-5, -42.4); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(8.6, -41); ctx.lineTo(9.3, -46); ctx.lineTo(5.2, -42.4); ctx.closePath(); ctx.fill();
+    }
+  }
+  // crowns: 0 none, 1 gold tiara with flowers, 2 silver star tiara, 3 flower crown, 4 queen's crown
+  function drawCrown(ctx, i, t) {
+    if (!i) return;
+    if (i === 1) {
+      ctx.fillStyle = '#ffd86b';
+      ctx.beginPath(); ctx.moveTo(-7, -40); ctx.lineTo(-5, -45); ctx.lineTo(-2.5, -41.5); ctx.lineTo(0.5, -47); ctx.lineTo(3, -41.5); ctx.lineTo(5.5, -45); ctx.lineTo(7, -40); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#9be7ff'; ctx.beginPath(); ctx.arc(0.5, -43.6, 1.2, 0, 7); ctx.fill();
+      ctx.fillStyle = '#ff8fb8'; ctx.beginPath(); ctx.arc(-5, -43, 0.8, 0, 7); ctx.arc(5.5, -43, 0.8, 0, 7); ctx.fill();
+      for (const [fx, fy] of [[-9.5, -38.5], [9.5, -38.5]]) {
+        ctx.fillStyle = '#ffffff'; for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; ctx.beginPath(); ctx.arc(fx + Math.cos(a) * 1.5, fy + Math.sin(a) * 1.5, 1.2, 0, 7); ctx.fill(); }
+        ctx.fillStyle = '#ffcf4d'; ctx.beginPath(); ctx.arc(fx, fy, 0.9, 0, 7); ctx.fill();
+      }
+    } else if (i === 2) {
+      ctx.fillStyle = '#e8ecf7';
+      ctx.beginPath(); ctx.moveTo(-7, -40); ctx.lineTo(-5.5, -44); ctx.lineTo(-2.5, -41.5); ctx.lineTo(0.5, -47); ctx.lineTo(3.5, -41.5); ctx.lineTo(6, -44); ctx.lineTo(7.5, -40); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffd43b'; starPath(ctx, 0.5, -46.5, 2.6, t * 2); ctx.fill();
+      ctx.fillStyle = '#ff8fd0'; ctx.beginPath(); ctx.arc(-5.5, -43, 0.9, 0, 7); ctx.arc(6, -43, 0.9, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(-7, -40.5, 14.5, 0.8);
+    } else if (i === 3) {
+      const cols = ['#ff8fb8', '#ffffff', '#ffe066', '#c9b6ff'];
+      ctx.fillStyle = '#5aa04a'; ctx.beginPath(); ctx.ellipse(0, -40.4, 10.5, 2, 0, Math.PI, 0); ctx.fill();
+      for (let k = -3; k <= 3; k++) {
+        const fx = k * 3.1, fy = -40.2 - (3 - Math.abs(k)) * 0.75;
+        ctx.fillStyle = cols[(k + 3) % 4]; for (let j = 0; j < 5; j++) { const a = j / 5 * Math.PI * 2; ctx.beginPath(); ctx.arc(fx + Math.cos(a) * 1.4, fy + Math.sin(a) * 1.4, 1.05, 0, 7); ctx.fill(); }
+        ctx.fillStyle = '#ffb02e'; ctx.beginPath(); ctx.arc(fx, fy, 0.8, 0, 7); ctx.fill();
+      }
+    } else if (i === 4) {
+      ctx.fillStyle = '#ffcf33';
+      ctx.beginPath(); ctx.moveTo(-8, -39.5); ctx.lineTo(-9.5, -50); ctx.lineTo(-4.8, -45.2); ctx.lineTo(0, -52.5); ctx.lineTo(4.8, -45.2); ctx.lineTo(9.5, -50); ctx.lineTo(8, -39.5); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffe98a'; for (const [x, y] of [[-9.5, -50], [0, -52.5], [9.5, -50]]) { ctx.beginPath(); ctx.arc(x, y, 1.4, 0, 7); ctx.fill(); }
+      ctx.fillStyle = '#e8344e'; ctx.beginPath(); ctx.arc(0, -44.2, 1.7, 0, 7); ctx.fill();
+      ctx.fillStyle = '#4dabf7'; ctx.beginPath(); ctx.arc(-4.8, -42.2, 1.1, 0, 7); ctx.arc(4.8, -42.2, 1.1, 0, 7); ctx.fill();
+      ctx.fillStyle = '#d9a41f'; ctx.fillRect(-8, -41, 16, 1.4);
+    }
+  }
+  // wardrobe menu preview: draws her with the saved wardrobe
+  function drawWardrobePreview(canvas, t) {
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const p = makePlayer('girl');
+    applyWardrobe(p, G.wardrobe);
+    p.face = 1; p.grounded = true; p.x = -PW / 2; p.y = -PH;
+    p.blinkT = (Math.sin(t * 0.7) > 0.97) ? -0.05 : 1;
+    p.groom = false;
+    const s = canvas.height / 78;
+    ctx.setTransform(s, 0, 0, s, canvas.width / 2, canvas.height * 0.9);
+    ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.beginPath(); ctx.ellipse(0, 0, 15, 3, 0, 0, 7); ctx.fill();
+    drawCharacter(ctx, p, t);
   }
 
   // iced strawberry matcha latte: pink strawberry milk at the bottom, matcha on top
@@ -3340,6 +3496,7 @@
     act(ch, kind) { return startAct(ch, kind, true); },
     shine(ch) { return startShine(ch, true); },
     magic(ch) { return doMagic(ch, true); },
+    getWardrobe, setWardrobe, drawWardrobePreview,
     outfit(ch) { return cycleOutfit(ch, true); },
     superPower(ch) { return trySuper(ch, true); },
     say(ch, i) { if (G.players) sayPhrase(ch, i, true); },
