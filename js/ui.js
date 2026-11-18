@@ -386,7 +386,7 @@
     mk(t('chat.orange'), 'fun eat', () => Game.act(chatChar(), 'orange'));
     if (chatChar() === 'girl') mk(t('chat.shine'), 'fun shine', () => Game.shine('girl'));
     mk(t('chat.magic'), 'fun shine', () => Game.magic(chatChar()));
-    if (chatChar() === 'girl') mk(t('chat.wardrobe'), 'fun shine', () => openWardrobe());
+    mk(t('chat.wardrobe'), 'fun shine', () => openWardrobe(chatChar()));
     if (chatChar() === 'girl') mk(t('chat.outfit'), 'fun shine', () => Game.outfit('girl'));
     const who = $('#chat-who');
     who.style.display = App.mode === 'online' ? 'none' : '';
@@ -521,9 +521,10 @@
 
   // ---------------- her wardrobe ----------------
   const SWATCH = ['#ff7aa8', '#e8344e', '#ff9a1f', '#ffd24d', '#7bc96f', '#35c6b0', '#4dabf7', '#3b5b9d', '#a58cf0', '#ff8fd0', '#ffffff', '#25232e'];
-  let wdTimer = null;
+  let wdTimer = null, wdWho = 'girl';
+  const wdSet = (part) => Game.setWardrobe(part, true, wdWho);
   function wdRows() {
-    const W = Game.getWardrobe(), C = W.c, rows = $('#wd-rows');
+    const W = Game.getWardrobe(wdWho), C = W.c, rows = $('#wd-rows');
     rows.innerHTML = '';
     const sec = (label) => { const d = document.createElement('div'); d.className = 'wd-sec'; d.innerHTML = `<h4>${label}</h4><div class="wd-opts"></div>`; rows.appendChild(d); return d.querySelector('.wd-opts'); };
     const opts = (label, names, cur, off, apply) => {
@@ -539,12 +540,12 @@
       const box = sec(label);
       const orig = document.createElement('button');
       orig.type = 'button'; orig.className = 'wd-opt' + (cur ? '' : ' on'); orig.textContent = t('wd.original');
-      orig.onclick = () => { click(); Game.setWardrobe({ c: { [key]: null } }); wdRows(); };
+      orig.onclick = () => { click(); wdSet({ c: { [key]: null } }); wdRows(); };
       box.appendChild(orig);
       SWATCH.forEach(col => {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'wd-sw' + (cur === col ? ' on' : ''); b.style.background = col; b.title = col;
-        b.onclick = () => { click(); Game.setWardrobe({ c: { [key]: col } }); wdRows(); };
+        b.onclick = () => { click(); wdSet({ c: { [key]: col } }); wdRows(); };
         box.appendChild(b);
       });
       const lab = document.createElement('label');
@@ -552,33 +553,40 @@
       lab.innerHTML = `<span>🎨</span><input type="color" value="${cur || '#ff7aa8'}">`;
       const inp = lab.querySelector('input');
       let last = 0;
-      inp.addEventListener('input', () => { const now = Date.now(); if (now - last < 120) return; last = now; Game.setWardrobe({ c: { [key]: inp.value } }); });
-      inp.addEventListener('change', () => { Game.setWardrobe({ c: { [key]: inp.value } }); wdRows(); });
+      inp.addEventListener('input', () => { const now = Date.now(); if (now - last < 120) return; last = now; wdSet({ c: { [key]: inp.value } }); });
+      inp.addEventListener('change', () => { wdSet({ c: { [key]: inp.value } }); wdRows(); });
       box.appendChild(lab);
     };
-    opts(t('wd.dress'), t('wd.dressOpts'), W.o, 0, (v) => Game.setWardrobe({ o: v }));
+    if (wdWho === 'boy') {
+      opts(t('wd.top'), t('wd.topOpts'), W.o, 0, (v) => wdSet({ o: v }));
+      colors(t('wd.topColor'), C.dress, 'dress');
+      colors(t('wd.shoeColor'), C.shoeColor, 'shoeColor');
+      return;
+    }
+    opts(t('wd.dress'), t('wd.dressOpts'), W.o, 0, (v) => wdSet({ o: v }));
     colors(t('wd.dressColor'), C.dress, 'dress');
-    opts(t('wd.shoes'), t('wd.shoeOpts'), C.shoe, 0, (v) => Game.setWardrobe({ c: { shoe: v } }));
+    opts(t('wd.shoes'), t('wd.shoeOpts'), C.shoe, 0, (v) => wdSet({ c: { shoe: v } }));
     colors(t('wd.shoeColor'), C.shoeColor, 'shoeColor');
-    opts(t('wd.hair'), t('wd.hairOpts'), C.hair, -1, (v) => Game.setWardrobe({ c: { hair: v } }));
+    opts(t('wd.hair'), t('wd.hairOpts'), C.hair, -1, (v) => wdSet({ c: { hair: v } }));
     colors(t('wd.hairColor'), C.hairColor, 'hairColor');
-    opts(t('wd.hat'), t('wd.hatOpts'), C.hat, -1, (v) => Game.setWardrobe({ c: { hat: v } }));
-    opts(t('wd.crown'), t('wd.crownOpts'), C.crown, -1, (v) => Game.setWardrobe({ c: { crown: v } }));
+    opts(t('wd.hat'), t('wd.hatOpts'), C.hat, -1, (v) => wdSet({ c: { hat: v } }));
+    opts(t('wd.crown'), t('wd.crownOpts'), C.crown, -1, (v) => wdSet({ c: { crown: v } }));
   }
-  function openWardrobe() {
+  function openWardrobe(who) {
     if (App.screen !== 'game') return;
+    wdWho = who === 'boy' ? 'boy' : 'girl';
     click(); openModal('mdl-wardrobe'); Game.setPaused(true);
     wdRows();
     clearInterval(wdTimer);
     const cv = $('#wd-canvas');
     wdTimer = setInterval(() => {
       if ($('#mdl-wardrobe').classList.contains('hidden')) { clearInterval(wdTimer); return; }
-      Game.drawWardrobePreview(cv, performance.now() / 1000);
+      Game.drawWardrobePreview(cv, performance.now() / 1000, wdWho);
     }, 33);
   }
   function initWardrobe() {
     $('#wd-done').onclick = () => { click(); closeModals(); };
-    $('#wd-reset').onclick = () => { click(); Game.setWardrobe({ o: 0, c: { dress: null, shoe: 0, shoeColor: null, hair: -1, hairColor: null, hat: -1, crown: -1 } }); wdRows(); };
+    $('#wd-reset').onclick = () => { click(); wdSet({ o: 0, c: { dress: null, shoe: 0, shoeColor: null, hair: -1, hairColor: null, hat: -1, crown: -1 } }); wdRows(); };
   }
 
   // ---------------- level map ----------------

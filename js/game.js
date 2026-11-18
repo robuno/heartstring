@@ -15,7 +15,7 @@
   const KEYMAPS = {
     p1: { left: ['KeyA'], right: ['KeyD'], jump: ['KeyW', 'Space'], anchor: ['KeyS'], reel: ['KeyE'], emote: ['Digit1', 'Digit2', 'Digit3', 'Digit4'], kiss: ['KeyF'], dance: ['KeyZ'], matcha: ['KeyX'], say: ['KeyC'], eat: ['KeyV'], shine: ['KeyG'], orange: ['KeyR'], magic: ['KeyT'], super: ['KeyQ'], outfit: ['KeyB'], wardrobe: ['KeyH'] },
     p2: { left: ['ArrowLeft'], right: ['ArrowRight'], jump: ['ArrowUp'], anchor: ['ArrowDown'], reel: ['ShiftRight', 'Slash', 'Period', 'Numpad0'], emote: ['Digit7', 'Digit8', 'Digit9', 'Digit0'], kiss: ['KeyL', 'Numpad1'], dance: ['KeyN'], matcha: ['KeyM'], say: ['KeyJ'], eat: ['KeyK'], shine: ['KeyI'], orange: ['KeyO'], magic: ['KeyU'], super: ['KeyP', 'Numpad2'], outfit: ['KeyY'], wardrobe: ['Semicolon'] },
-    solo: { left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], jump: ['KeyW', 'ArrowUp', 'Space'], anchor: ['KeyS', 'ArrowDown', 'ShiftLeft'], reel: ['KeyE', 'ShiftRight'], emote: ['Digit1', 'Digit2', 'Digit3', 'Digit4'], kiss: ['KeyK', 'KeyF'], dance: ['KeyZ'], matcha: ['KeyX'], say: ['Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'], eat: ['KeyV'], shine: ['KeyG'], orange: ['KeyR'], magic: ['KeyT'], super: ['KeyQ'], outfit: ['KeyB'], wardrobe: ['KeyH'] },
+    solo: { left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], jump: ['KeyW', 'ArrowUp', 'Space'], anchor: ['KeyS', 'ArrowDown', 'ShiftLeft'], reel: ['KeyE', 'ShiftRight'], emote: ['Digit1', 'Digit2', 'Digit3', 'Digit4'], kiss: ['KeyK', 'KeyF'], dance: ['KeyZ'], matcha: ['KeyX'], say: ['Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'], eat: ['KeyV'], shine: ['KeyG'], orange: ['KeyR'], magic: ['KeyT'], super: ['KeyQ'], outfit: ['KeyB'], wardrobe: ['KeyH'], wardrobeBoy: ['KeyJ'] },
   };
   const tr = (k, v) => (global.I18N ? global.I18N.t(k, v) : k);
   const trList = (k, i) => { const l = tr(k); return Array.isArray(l) ? l[i] || l[0] : ''; };
@@ -242,7 +242,7 @@
         if (km.orange.includes(e.code)) startAct(ch, 'orange', true);
         if (km.magic.includes(e.code)) doMagic(ch, true);
         if (km.outfit.includes(e.code)) cycleOutfit(ch, true);
-        if (ch === 'girl' && km.wardrobe.includes(e.code) && G.hooks.wardrobe) G.hooks.wardrobe();
+        if (G.hooks.wardrobe && ((km.wardrobe.includes(e.code) && (sc !== 'solo' || ch === 'girl')) || (ch === 'boy' && km.wardrobeBoy && km.wardrobeBoy.includes(e.code)))) G.hooks.wardrobe(ch);
         if (km.super.includes(e.code)) trySuper(ch, true);
         const si = km.say.indexOf(e.code);
         if (si >= 0) {
@@ -268,7 +268,7 @@
     G.celeb = null; G.fx = []; G.fxCritters = [];
     G.players = { boy: makePlayer('boy'), girl: makePlayer('girl') };
     initHard();
-    applyWardrobe(G.players.girl, G.wardrobe);
+    applyWardrobe(G.players.girl, G.wd.girl); applyWardrobe(G.players.boy, G.wd.boy);
     if (G.mode === 'online') { G.players.boy.local = G.myChar === 'boy'; G.players.girl.local = G.myChar === 'girl'; }
     for (const m of L.movers) { m.x = m.x0; m.y = m.y0; m.dx = 0; m.dy = 0; }
     updateMovers(true);
@@ -946,7 +946,9 @@
   }
   // ---------- her wardrobe: presets + a full customiser (colours, shoes, hair accessory, hat, crown) ----------
   const WD_KEY = 'heartstring.wardrobe';
-  const NOUTFITS = 6; // 0 pink dress, 1 sundress, 2 ball gown, 3 wedding gown, 4 kimono, 5 sailor dress
+  const NOUTFITS = 7, NOUTFITS_BOY = 6; // girl: 0 pink dress, 1 sundress, 2 ball gown, 3 wedding gown, 4 kimono, 5 sailor dress, 6 Galatasaray jersey dress
+  // boy: 0 sweater, 1 t-shirt, 2 shirt, 3 sweatshirt, 4 jacket, 5 Galatasaray jersey
+  const nOut = (ch) => (ch === 'boy' ? NOUTFITS_BOY : NOUTFITS);
   function defaultCust() { return { dress: null, shoe: 0, shoeColor: null, hair: -1, hairColor: null, hat: -1, crown: -1 }; }
   const DEFAULT_CUST = defaultCust();
   function cleanCust(c) {
@@ -957,35 +959,38 @@
     d.hair = ni(c.hair, -1, 5, -1); d.hairColor = hex(c.hairColor); d.hat = ni(c.hat, -1, 4, -1); d.crown = ni(c.crown, -1, 4, -1);
     return d;
   }
-  function loadWardrobe() {
-    try { const w = JSON.parse(localStorage.getItem(WD_KEY)); if (w) return { o: ((w.o | 0) % NOUTFITS + NOUTFITS) % NOUTFITS, c: cleanCust(w.c) }; } catch (e) { /* ignore */ }
+  const wdKey = (ch) => (ch === 'boy' ? 'heartstring.wardrobe.boy' : WD_KEY);
+  function loadWardrobe(ch) {
+    const n = nOut(ch);
+    try { const w = JSON.parse(localStorage.getItem(wdKey(ch))); if (w) return { o: ((w.o | 0) % n + n) % n, c: cleanCust(w.c) }; } catch (e) { /* ignore */ }
     return { o: 0, c: defaultCust() };
   }
-  function saveWardrobe() { try { localStorage.setItem(WD_KEY, JSON.stringify(G.wardrobe)); } catch (e) { /* ignore */ } }
-  function applyWardrobe(p, w) { if (!p || !w) return; p.outfit = (((w.o | 0) % NOUTFITS) + NOUTFITS) % NOUTFITS; p.cust = cleanCust(w.c); }
-  G.wardrobe = loadWardrobe();
+  function saveWardrobe(ch) { try { localStorage.setItem(wdKey(ch), JSON.stringify(G.wd[ch])); } catch (e) { /* ignore */ } }
+  function applyWardrobe(p, w) { if (!p || !w) return; const n = nOut(p.char); p.outfit = (((w.o | 0) % n) + n) % n; p.cust = cleanCust(w.c); }
+  G.wd = { girl: loadWardrobe('girl'), boy: loadWardrobe('boy') };
   function wardrobeFx(g) {
     if (!g) return;
     const cx = g.x + PW / 2, cy = g.y + PH / 2, cols = ['#ffd1e8', '#ffffff', '#ffe066', '#c9b6ff'];
     for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; spawnParticle(cx, cy, Math.cos(a) * 130, Math.sin(a) * 130 - 30, 0.8, cols[i % 4], 3 + Math.random() * 2.5, i % 3 ? 'star5' : 'heart', 80, { drag: 0.93, vr: 6 }); }
     spawnParticle(cx, cy, 0, 0, 0.6, '#ff8fd8', 10, 'ring', 0, { grow: 3.2, lw: 3 });
   }
-  function getWardrobe() { return { o: G.wardrobe.o, c: Object.assign({}, G.wardrobe.c) }; }
-  // part = { o?: outfit index, c?: { dress, shoe, shoeColor, hair, hairColor, hat, crown } }
-  function setWardrobe(part, send) {
-    const W = G.wardrobe;
-    if (part.o !== undefined) W.o = ((part.o % NOUTFITS) + NOUTFITS) % NOUTFITS;
+  function getWardrobe(ch) { const W = G.wd[ch === 'boy' ? 'boy' : 'girl']; return { o: W.o, c: Object.assign({}, W.c) }; }
+  // part = { o?: outfit index, c?: { dress (= top colour for him), shoe, shoeColor, hair, hairColor, hat, crown } }
+  function setWardrobe(part, send, ch) {
+    ch = ch === 'boy' ? 'boy' : 'girl';
+    const W = G.wd[ch], n = nOut(ch);
+    if (part.o !== undefined) W.o = ((part.o % n) + n) % n;
     if (part.c) W.c = cleanCust(Object.assign({}, W.c, part.c));
-    saveWardrobe();
-    const g = G.players && G.players.girl;
+    saveWardrobe(ch);
+    const g = G.players && G.players[ch];
     if (g && (g.local || G.mode !== 'online')) { applyWardrobe(g, W); wardrobeFx(g); Sfx.play('magic'); }
-    if (send !== false && G.mode === 'online') netSend({ t: 'wardrobe', w: JSON.stringify(W) });
+    if (send !== false && G.mode === 'online') netSend({ t: 'wardrobe', ch, w: JSON.stringify(W) });
   }
   function cycleOutfit(ch, send, to) {
     if (ch !== 'girl' || !G.players) return false;
     const g = G.players.girl;
     g.outfit = to !== undefined ? ((to % NOUTFITS) + NOUTFITS) % NOUTFITS : ((g.outfit > 3 ? -1 : g.outfit) + 1) % 4;
-    if (g.local) { G.wardrobe.o = g.outfit; saveWardrobe(); }
+    if (g.local) { G.wd.girl.o = g.outfit; saveWardrobe('girl'); }
     g.emote = tr('act.outfit' + Math.min(g.outfit, 3)); g.emoteT = 2.2;
     g.act = null;
     Sfx.play(g.outfit === 3 ? 'wedding' : 'magic');
@@ -1530,7 +1535,7 @@
     if (G.netAcc < 1 / 30) return;
     G.netAcc = 0;
     const p = G.players[G.myChar];
-    netSend({ t: 's', x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10, vx: Math.round(p.vx), vy: Math.round(p.vy), f: p.face, a: p.anchored ? 1 : 0, w: p.wallSide, g: p.grounded ? 1 : 0, r: Math.round(p.reel), tt: G.t, lv: G.L.n, wd: (p.char === 'girl' && ((G.wdTick = (G.wdTick | 0) + 1) % 30 === 1)) ? JSON.stringify({ o: p.outfit, c: p.cust }) : undefined });
+    netSend({ t: 's', x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10, vx: Math.round(p.vx), vy: Math.round(p.vy), f: p.face, a: p.anchored ? 1 : 0, w: p.wallSide, g: p.grounded ? 1 : 0, r: Math.round(p.reel), tt: G.t, lv: G.L.n, wd: (((G.wdTick = (G.wdTick | 0) + 1) % 30 === 1)) ? JSON.stringify({ o: p.outfit, c: p.cust }) : undefined });
   }
   function onNet(m) {
     if (!G.players || !G.L) return;
@@ -1539,7 +1544,7 @@
       case 's':
         if (m.lv !== G.L.n) return;
         if (G.respawnT > 0.3) return;
-        if (m.wd && o.char === 'girl' && m.wd !== o._wd) { o._wd = m.wd; try { applyWardrobe(o, JSON.parse(m.wd)); } catch (e) { /* ignore */ } }
+        if (m.wd && m.wd !== o._wd) { o._wd = m.wd; try { applyWardrobe(o, JSON.parse(m.wd)); } catch (e) { /* ignore */ } }
         o.tx = m.x; o.ty = m.y; o.nvx = m.vx; o.nvy = m.vy; o.face = m.f; o.anchored = !!m.a; o.wallSide = m.w || 0;
         if (m.g && !o.grounded && o.nvy >= 0) o.squash = 0.15;
         o.grounded = !!m.g; o.reel = m.r || 0; o.netAge = 0;
@@ -1557,7 +1562,7 @@
       case 'act': startAct(other(G.myChar), m.a, false, true); break;
       case 'shine': startShine('girl', false); break;
       case 'outfit': cycleOutfit('girl', false, m.o | 0); break;
-      case 'wardrobe': try { const w = JSON.parse(m.w); applyWardrobe(G.players.girl, w); wardrobeFx(G.players.girl); } catch (e) { /* ignore */ } break;
+      case 'wardrobe': try { const w = JSON.parse(m.w), wc = m.ch === 'boy' ? 'boy' : 'girl'; applyWardrobe(G.players[wc], w); wardrobeFx(G.players[wc]); } catch (e) { /* ignore */ } break;
       case 'magic': doMagic(m.ch === 'girl' ? 'girl' : 'boy', false); break;
       case 'super': if (G.mon) applySuper(m.ch === 'girl' ? 'girl' : 'boy', Array.isArray(m.ids) ? m.ids : []); break;
       case 'bomb': if (G.bombs) addBomb(m.tx | 0, m.ty | 0, false); break;
@@ -2241,8 +2246,8 @@
     const shining = girl && (p.shineT > 0 || wandUp) && !dance && !sipping && !eating && !orange && !p.anchored;
     const glowing = !girl && p.glowT > 0;
     const chewing = (eating || orange) && (p.chewT > 0 || (ek > 0.9));
-    const outfit = girl ? (p.outfit || 0) : 0;
-    const cu = p.cust || DEFAULT_CUST, dcol = girl ? cu.dress : null;
+    const outfit = p.outfit || 0;
+    const cu = p.cust || DEFAULT_CUST, dcol = cu.dress;
     const bride = girl && ((p.bridalT || 0) > 0 || outfit === 3);
     const groom = !girl && !!p.groom;
     const punching = !girl && (p.punchT || 0) > 0;
@@ -2265,7 +2270,7 @@
       ctx.beginPath(); ctx.ellipse(0, -1, 14, 4, 0, 0, 7); ctx.fill();
     }
     // legs
-    const shoeCol = (girl && p.cust && p.cust.shoeColor) || C.shoe;
+    const shoeCol = (p.cust && p.cust.shoeColor) || C.shoe;
     ctx.fillStyle = shoeCol;
     const shoeStyle = girl ? (p.cust ? p.cust.shoe : 0) : 0;
     const leg = (x, y, w, h) => { if (girl) drawShoe(ctx, x, y, w, h, shoeStyle, shoeCol); else { rr(ctx, x, y, w, h, 2); ctx.fill(); } };
@@ -2333,6 +2338,16 @@
       ctx.fillStyle = '#ffe9a8';
       for (const [dx, dy, r] of [[-8, -5, 1.5], [-2, -7.5, 1.1], [6, -4.5, 1.4], [0, -2.5, 1], [9, -8, 0.9], [-9.5, -9, 0.9]]) { starPath(ctx, dx, dy, r * 1.6, t * 0.6 + dx); ctx.fill(); }
       ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.ellipse(-5, -9.5, 1.2, 3.4, 0.4, 0, 7); ctx.fill();
+    } else if (girl && outfit === 6) {
+      // Galatasaray jersey dress: red & yellow stripes, crest on the chest
+      const sway = Math.sin(t * 3) * 0.6 + (moving ? Math.sin(wt) : 0);
+      ctx.save();
+      ctx.beginPath(); ctx.moveTo(-6, -19.5); ctx.lineTo(6, -19.5); ctx.lineTo(5.5, -13); ctx.quadraticCurveTo(10.5, -7, 11.5 + sway, -2); ctx.quadraticCurveTo(0, 0, -11.5 + sway, -2); ctx.quadraticCurveTo(-10.5, -7, -5.5, -13); ctx.closePath(); ctx.clip();
+      for (let i = -3; i < 3; i++) { ctx.fillStyle = (i & 1) ? '#ffc20e' : '#a90432'; ctx.fillRect(i * 4.2, -21, 4.2, 22); }
+      ctx.restore();
+      ctx.fillStyle = '#ffc20e'; ctx.fillRect(-6, -20, 12, 1.5);
+      ctx.fillStyle = '#7d0324'; ctx.fillRect(-11 + sway, -3.4, 22, 1.2);
+      ctx.save(); ctx.scale(p.face, 1); drawGsCrest(ctx, 0, -14.5, 3); ctx.restore();
     } else if (girl && outfit === 4) {
       // kimono dress: sakura print, white collar, golden obi with a big bow at the back
       const kc = dcol || '#e8527a', sway = Math.sin(t * 3) * 0.6 + (moving ? Math.sin(wt) : 0);
@@ -2373,6 +2388,51 @@
       ctx.fillStyle = '#6c6a78'; ctx.beginPath(); ctx.arc(0, -8.6, 0.7, 0, 7); ctx.arc(0, -6.2, 0.7, 0, 7); ctx.fill();
       ctx.fillStyle = '#ff8fb8'; ctx.beginPath(); ctx.arc(-4.5, -15, 1.5, 0, 7); ctx.fill(); ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(-4.5, -15, 0.6, 0, 7); ctx.fill();
       ctx.fillStyle = '#17151d'; ctx.fillRect(-7.5, -6.5, 15, 1.6);
+    } else if (outfit === 1) {
+      // t-shirt with a little heart print
+      const tc = dcol || '#ff9a3c';
+      ctx.fillStyle = tc; rr(ctx, -7, -19, 14, 14, 4); ctx.fill();
+      rr(ctx, -9.4, -19, 4.2, 5, 1.5); ctx.fill(); rr(ctx, 5.2, -19, 4.2, 5, 1.5); ctx.fill();
+      ctx.fillStyle = shade(tc, -0.2); ctx.fillRect(-7, -7.2, 14, 2.2);
+      ctx.save(); ctx.scale(p.face, 1); ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.moveTo(0, -9.5); ctx.bezierCurveTo(-5, -13, -2.5, -17, 0, -14.5); ctx.bezierCurveTo(2.5, -17, 5, -13, 0, -9.5); ctx.fill();
+      ctx.restore();
+    } else if (outfit === 2) {
+      // button-up shirt: pale blue, white collar, buttons and a chest pocket
+      const sc = dcol || '#9cc4f2';
+      ctx.fillStyle = sc; rr(ctx, -7, -19, 14, 14, 3); ctx.fill();
+      rr(ctx, -9.2, -19, 4, 6, 1.5); ctx.fill(); rr(ctx, 5.2, -19, 4, 6, 1.5); ctx.fill();
+      ctx.strokeStyle = shade(sc, -0.25); ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(0, -19); ctx.lineTo(0, -5); ctx.stroke();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(0, -19.5); ctx.lineTo(-5, -20.5); ctx.lineTo(-3.5, -15.5); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(0, -19.5); ctx.lineTo(5, -20.5); ctx.lineTo(3.5, -15.5); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = shade(sc, -0.4); for (const y of [-13, -9.5, -6.3]) { ctx.beginPath(); ctx.arc(0, y, 0.6, 0, 7); ctx.fill(); }
+      ctx.strokeStyle = shade(sc, -0.3); ctx.strokeRect(2.4, -14.5, 3.4, 3.4);
+    } else if (outfit === 3) {
+      // sweatshirt/hoodie: soft purple, hood bunched at the back of the neck, front pocket, drawstrings
+      const hc = dcol || '#8d7bd8';
+      ctx.fillStyle = shade(hc, -0.22); ctx.beginPath(); ctx.ellipse(-4, -20, 6.5, 4.2, -0.35, 0, 7); ctx.fill();
+      ctx.fillStyle = hc; rr(ctx, -7.6, -19, 15.2, 14.2, 4.5); ctx.fill();
+      rr(ctx, -9.4, -19, 4.4, 6, 2); ctx.fill(); rr(ctx, 5, -19, 4.4, 6, 2); ctx.fill();
+      ctx.fillStyle = shade(hc, -0.2); ctx.fillRect(-7.6, -6.8, 15.2, 2.2);
+      ctx.strokeStyle = shade(hc, -0.28); ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(-5.5, -11.4); ctx.lineTo(5.5, -11.4); ctx.lineTo(4.4, -7); ctx.lineTo(-4.4, -7); ctx.closePath(); ctx.stroke();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(-1.6, -18); ctx.lineTo(-1.8, -13.5); ctx.moveTo(1.6, -18); ctx.lineTo(1.8, -13.5); ctx.stroke();
+    } else if (outfit === 4) {
+      // jacket: brown bomber over a white tee, zip, collar and cuffs
+      const jc = dcol || '#8a5a35';
+      ctx.fillStyle = '#ffffff'; rr(ctx, -4, -19.5, 8, 14, 2); ctx.fill();
+      ctx.fillStyle = jc; rr(ctx, -7.8, -19, 6, 14.4, 3); ctx.fill(); rr(ctx, 1.8, -19, 6, 14.4, 3); ctx.fill();
+      rr(ctx, -9.6, -19, 4.4, 7, 2); ctx.fill(); rr(ctx, 5.2, -19, 4.4, 7, 2); ctx.fill();
+      ctx.fillStyle = shade(jc, -0.25); ctx.fillRect(-7.8, -6.9, 15.6, 2.3); ctx.fillRect(-2, -19.5, 4, 1.4);
+      ctx.strokeStyle = '#d9d9e2'; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(0, -19); ctx.lineTo(0, -5); ctx.stroke();
+      ctx.fillStyle = shade(jc, 0.35); ctx.beginPath(); ctx.moveTo(-1.8, -19.5); ctx.lineTo(-6.2, -19.5); ctx.lineTo(-2.4, -15); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(1.8, -19.5); ctx.lineTo(6.2, -19.5); ctx.lineTo(2.4, -15); ctx.closePath(); ctx.fill();
+    } else if (outfit === 5) {
+      // Galatasaray jersey: red & yellow stripes, crest, yellow sleeves
+      ctx.save();
+      rr(ctx, -7, -19, 14, 14, 4); ctx.clip();
+      for (let i = -2; i < 2; i++) { ctx.fillStyle = (i & 1) ? '#ffc20e' : '#a90432'; ctx.fillRect(i * 3.6 - 0.2, -20, 3.6, 16); }
+      ctx.restore();
+      ctx.fillStyle = '#ffc20e'; rr(ctx, -9.4, -19, 4.2, 5, 1.5); ctx.fill(); rr(ctx, 5.2, -19, 4.2, 5, 1.5); ctx.fill();
+      ctx.fillStyle = '#7d0324'; ctx.fillRect(-7, -7, 14, 2);
+      ctx.save(); ctx.scale(p.face, 1); drawGsCrest(ctx, 0, -13.2, 2.9); ctx.restore();
     } else {
       rr(ctx, -7, -19, 14, 14, 4); ctx.fill();
       ctx.fillStyle = C.bodyDark; ctx.fillRect(-7, -9, 14, 3);
@@ -2605,6 +2665,13 @@
     ctx.restore();
   }
 
+  // tiny Galatasaray-style crest: red & yellow shield with a white "GS" bar
+  function drawGsCrest(ctx, x, y, r) {
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x, y, r + 0.7, 0, 7); ctx.fill();
+    ctx.fillStyle = '#a90432'; ctx.beginPath(); ctx.arc(x, y, r, Math.PI / 2, Math.PI * 1.5); ctx.fill();
+    ctx.fillStyle = '#ffc20e'; ctx.beginPath(); ctx.arc(x, y, r, -Math.PI / 2, Math.PI / 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(x - r * 0.15, y - r * 0.9, r * 0.3, r * 1.8);
+  }
   function shade(hex, k) {
     const n = parseInt(hex.slice(1), 16), f = k >= 0 ? (v) => Math.round(v + (255 - v) * k) : (v) => Math.round(v * (1 + k));
     return '#' + [f(n >> 16), f((n >> 8) & 255), f(n & 255)].map(v => v.toString(16).padStart(2, '0')).join('');
@@ -2717,12 +2784,13 @@
     }
   }
   // wardrobe menu preview: draws her with the saved wardrobe
-  function drawWardrobePreview(canvas, t) {
+  function drawWardrobePreview(canvas, t, ch) {
+    ch = ch === 'boy' ? 'boy' : 'girl';
     const ctx = canvas.getContext('2d');
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const p = makePlayer('girl');
-    applyWardrobe(p, G.wardrobe);
+    const p = makePlayer(ch);
+    applyWardrobe(p, G.wd[ch]);
     p.face = 1; p.grounded = true; p.x = -PW / 2; p.y = -PH;
     p.blinkT = (Math.sin(t * 0.7) > 0.97) ? -0.05 : 1;
     p.groom = false;
